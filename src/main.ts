@@ -16,9 +16,9 @@
  *
  * Note: The resourceIds below are stable and will let future runs update the same resources.
  */
-import { notion } from "./lib/notion";
-import { welcomeContent } from "./content";
-import sampleRows from "./data/sample-projects.json";
+import { notion } from "./lib/notion.js";
+import { welcomeContent } from "./content.js";
+import sampleRows from "./data/sample-projects.json" with { type: "json" };
 
 const spaceParent = {
 	type: "resourceId",
