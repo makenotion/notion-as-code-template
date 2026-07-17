@@ -9,7 +9,7 @@ reject requests in some environments.
 
 - `src/main.ts` is the entry point. Split code across `src/` files with
   standard imports; `npm run build` bundles them.
-- `src/lib/` (`notion.js`, `notion.d.ts`, `entry.js`) is the vendored
+- `src/lib/` (`notion.ts`, `types.d.ts`, `entry.ts`) is the vendored
   Notion-as-Code runtime and types — never edit it.
 - `npm run build` writes `dist/intents.json`, which is exactly what
   `ntn notion-as-code apply` submits.
@@ -34,7 +34,7 @@ reject requests in some environments.
   one shared teamspace-parent `resourceId`.
 - Page `content` is Notion-flavored Markdown; the full spec is the
   `NOTION_AS_CODE_MARKDOWN_SPEC` constant at the bottom of
-  `src/lib/notion.d.ts`.
+  `src/lib/types.d.ts`.
 
 ## Commands
 

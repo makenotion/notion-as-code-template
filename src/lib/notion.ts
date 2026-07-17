@@ -7,15 +7,26 @@
 // calling the Notion API directly. `ntn notion-as-code apply` submits the
 // recorded intents.
 
-const intents = [];
+import type {
+  DatabaseHandle,
+  DatabaseIntent,
+  DataSourceHandle,
+  InfraAsCodeIntent,
+  notion as notionDefinition,
+  PageIntent,
+  PropertySchemaDefinition,
+} from "./types";
 
-const notion = {
-  intent(intent) {
-    intents.push(intent);
-  },
+const intents: InfraAsCodeIntent[] = [];
+
+function recordIntent(intent: InfraAsCodeIntent) {
+  intents.push(intent);
+}
+
+const notion: typeof notionDefinition = {
 
   space: args => {
-    notion.intent({ type: "space", ...args });
+    recordIntent({ type: "space", ...args });
     return {
       resourceId: args.resourceId,
       addTeamspace: tsArgs =>
@@ -27,7 +38,7 @@ const notion = {
   },
 
   teamspace: args => {
-    notion.intent({ type: "teamspace", ...args });
+    recordIntent({ type: "teamspace", ...args });
     return {
       resourceId: args.resourceId,
       addDatabase: dbArgs =>
@@ -43,15 +54,26 @@ const notion = {
     };
   },
 
-  database: args => {
-    notion.intent({ type: "database", ...args });
+  database: <
+    DS extends {
+      resourceId: string;
+      name: string;
+      properties: PropertySchemaDefinition[];
+    }[],
+  >(
+    args: Omit<DatabaseIntent, "dataSources"> & { dataSources: DS },
+  ): DatabaseHandle<DS> => {
+    recordIntent({ type: "database", ...args });
 
-    const dataSources = {};
-    for (const ds of args.dataSources || []) {
+    const dataSources: Record<
+      string,
+      DataSourceHandle<PropertySchemaDefinition[]>
+    > = {};
+    for (const ds of args.dataSources) {
       const dataSourceResourceId = ds.resourceId;
       dataSources[ds.resourceId] = {
         resourceId: dataSourceResourceId,
-        schema: ds.properties || [],
+        schema: ds.properties,
         addPage: pageArgs =>
           notion.page({
             ...pageArgs,
@@ -75,25 +97,25 @@ const notion = {
         return dataSource;
       },
       addView: view => {
-        notion.intent({
+        recordIntent({
           type: "view",
           databaseResourceId: args.resourceId,
           view,
         });
       },
-    };
+    } as DatabaseHandle<DS>;
   },
 
   page: args => {
-    notion.intent({ type: "page", ...args });
+    recordIntent({ type: "page", ...args });
     return {
       resourceId: args.resourceId,
-      addPage: pageArgs =>
+      addPage: (pageArgs: Omit<PageIntent, "parent">) =>
         notion.page({
           ...pageArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },
         }),
-      addDatabase: dbArgs =>
+      addDatabase: (dbArgs: Omit<DatabaseIntent, "parent">) =>
         notion.database({
           ...dbArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },
@@ -102,7 +124,7 @@ const notion = {
   },
 
   customAgent: args => {
-    notion.intent({ type: "custom_agent", ...args });
+    recordIntent({ type: "custom_agent", ...args });
     return {
       resourceId: args.resourceId,
     };
@@ -130,9 +152,10 @@ const notion = {
   relation: value => value,
 };
 
+export type * from "./types";
 export { notion };
 
-/** Internal: consumed by entry.js after the user script has run. */
+/** Internal: consumed by entry.ts after the user script has run. */
 export function getIntents() {
   return intents;
 }
