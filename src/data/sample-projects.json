@@ -5,7 +5,7 @@
     "status": "Done",
     "priority": "High",
     "target": "2026-07-08",
-    "notes": "Confirm the General teamspace and hello page."
+    "notes": "Confirm the Notion as Code teamspace and hello page exist."
   },
   {
     "resourceId": "invite-teammates",
