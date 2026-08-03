@@ -1,18 +1,7 @@
-/* =============================================================================
-
-	VENDORED FILE - DO NOT EDIT
-	Vendored from notion-sdk-js:
-	src/EXPERIMENTAL__notion-as-code/utils/types.ts
-	Re-vendor from the SDK to update.
-
-============================================================================= */
-
-/* =============================================================================
-
-	GENERATED FILE - DO NOT EDIT MANUALLY
-	Ambient type declarations for Infrastructure as Code scripts.
-
-============================================================================= */
+/**
+ * Vendored type declarations for the Notion-as-Code runtime.
+ * Keep this file in sync with Notion's generated external types.
+ */
 
 // Type definitions for infra as code scripts (external SDK)
 // This file is self-contained with no external imports.
@@ -30,7 +19,7 @@ declare const notionIconColors: [
   "red",
 ]
 
-type NotionIconColor = (typeof notionIconColors)[number]
+export type NotionIconColor = (typeof notionIconColors)[number]
 
 declare const selectColors: [
   "default",
@@ -45,7 +34,7 @@ declare const selectColors: [
   "red",
 ]
 
-type SelectColor = (typeof selectColors)[number]
+export type SelectColor = (typeof selectColors)[number]
 
 // Opaque types - external consumers should not construct these directly
 // They are returned by the notion helper functions
@@ -54,15 +43,15 @@ type SelectColor = (typeof selectColors)[number]
  * Represents a mention token in Notion text.
  * This is an opaque type returned by mention helper functions.
  */
-type MentionToken = unknown
+export type MentionToken = unknown
 
 // Internal helper generic used by PropertiesInputForSchema
-type ExtractByName<
+export type ExtractByName<
   P extends PropertySchemaDefinition[],
   N extends string,
 > = Extract<P[number], { name: N }>
 
-type ResourceId = string
+export type ResourceId = string
 
 /**
  * Emoji icon - uses a standard emoji character.
@@ -70,7 +59,7 @@ type ResourceId = string
  * @example
  * icon: { type: "emoji", emoji: "📊" }
  */
-type EmojiIcon = {
+export type EmojiIcon = {
   type: "emoji"
   emoji: string
 }
@@ -96,7 +85,7 @@ type EmojiIcon = {
  * @example with color
  * icon: { type: "notion_icon", description: "calendar", color: "blue" }
  */
-type NotionIcon = {
+export type NotionIcon = {
   type: "notion_icon"
   /**
    * Either an exact Notion icon slug (preferred when known) or a
@@ -126,9 +115,9 @@ type NotionIcon = {
  * @example Notion custom icon by description (semantic search)
  * icon: { type: "notion_icon", description: "project management" }
  */
-type InfraAsCodeIcon = EmojiIcon | NotionIcon | FileReference
+export type InfraAsCodeIcon = EmojiIcon | NotionIcon | FileReference
 
-type Parent = {
+export type Parent = {
   type: "resourceId"
   resourceId: ResourceId
 }
@@ -144,7 +133,7 @@ type Parent = {
  * Infra as Code script. Parenting to existing records outside the script is not supported
  * for permission safety reasons.
  */
-type PageIntent = {
+export type PageIntent = {
   resourceId: ResourceId
   parent: Parent
   /**
@@ -182,7 +171,7 @@ type PageIntent = {
    * (a real child subpage at a chosen position, rather than appended at the
    * end), create that page with its `parent` set to THIS page's resourceId,
    * then reference it in this content with a
-   * `<page url="{{that-resource-id}}">Title</page>` tag. The tag controls only
+   * `<page url="{{that-resource-id}}"></page>` tag. The tag controls only
    * the placement; the child page's `parent` is the source of truth for
    * containment. The referenced page must be created in the same script and may
    * be referenced at most once per content body.
@@ -192,9 +181,17 @@ type PageIntent = {
    * block (ideal for multi-column hub layouts). When nested, the child page is
    * re-parented into that container while remaining a real page.
    *
+   * INLINE DATABASES: Position an in-script child database with
+   * `<database url="{{that-resource-id}}"></database>`. Set its `parent` to
+   * this page's resourceId. Add `inline="true"` to render it inline; omit
+   * `inline` to render it as a full page.
+   *
+   * Use `url` for a real child database (full-page or inline) and
+   * `data-source-url` for a linked database view. Never combine them.
+   *
    * @example
    * // Hub page that lists a real child subpage under a heading:
-   * content: '# Team\n<page url="{{getting-started}}">Getting Started</page>'
+   * content: '# Team\n<page url="{{getting-started}}"></page>'
    * // ...elsewhere in the same script:
    * notion.page({
    *   resourceId: "getting-started",
@@ -213,12 +210,19 @@ type PageIntent = {
    * Optional cover image for the page.
    */
   cover?: PageCoverReference
+  /**
+   * Whether the page renders full width (no side margins).
+   *
+   * Omitted leaves the Notion default (not full width). An explicit
+   * `false` clears full width on reruns against existing pages.
+   */
+  fullWidth?: boolean
 }
 
 /**
  * Base property schema definition shared by all property types.
  */
-type BasePropertySchemaDefinition = {
+export type BasePropertySchemaDefinition = {
   /** Display name of the property in the database */
   name: string
   /**
@@ -248,7 +252,7 @@ type BasePropertySchemaDefinition = {
  * @example
  * { resourceId: "name-prop", name: "Name", type: "title" }
  */
-type TitlePropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type TitlePropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "title"
 }
 
@@ -258,7 +262,7 @@ type TitlePropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "desc-prop", name: "Description", type: "text" }
  */
-type TextPropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type TextPropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "text"
 }
 
@@ -268,7 +272,7 @@ type TextPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "budget-prop", name: "Budget", type: "number" }
  */
-type NumberPropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type NumberPropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "number"
 }
 
@@ -287,7 +291,7 @@ type NumberPropertySchemaDefinition = BasePropertySchemaDefinition & {
  *   ],
  * }
  */
-type SelectPropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type SelectPropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "select"
   options?: Array<SelectOptionDefinition>
 }
@@ -307,10 +311,11 @@ type SelectPropertySchemaDefinition = BasePropertySchemaDefinition & {
  *   ],
  * }
  */
-type MultiSelectPropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "multi_select"
-  options?: Array<SelectOptionDefinition>
-}
+export type MultiSelectPropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "multi_select"
+    options?: Array<SelectOptionDefinition>
+  }
 
 /**
  * Available colors for select, multi-select, and status options.
@@ -319,7 +324,7 @@ type MultiSelectPropertySchemaDefinition = BasePropertySchemaDefinition & {
 
 declare const selectOptionColors: typeof selectColors
 
-type SelectOptionColor = SelectColor
+export type SelectOptionColor = SelectColor
 
 /**
  * Definition for a select or multi-select option with name and optional color.
@@ -327,7 +332,7 @@ type SelectOptionColor = SelectColor
  * @example
  * { name: "High", color: "red" }
  */
-type SelectOptionDefinition = {
+export type SelectOptionDefinition = {
   /** Display name of the option */
   name: string
   /** Color for the option. If not specified, Notion's default color is used. */
@@ -336,7 +341,7 @@ type SelectOptionDefinition = {
 
 declare const statusOptionColors: typeof selectColors
 
-type StatusOptionColor = SelectColor
+export type StatusOptionColor = SelectColor
 
 /**
  * Definition for a status option with name and optional color.
@@ -344,7 +349,7 @@ type StatusOptionColor = SelectColor
  * @example
  * { name: "In Progress", color: "blue" }
  */
-type StatusOptionDefinition = {
+export type StatusOptionDefinition = {
   /** Display name of the option */
   name: string
   /** Color for the option. If not specified, the status group's default color is used. */
@@ -380,7 +385,7 @@ type StatusOptionDefinition = {
  *   },
  * }
  */
-type StatusPropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type StatusPropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "status"
   /**
    * Status options organized by workflow group.
@@ -398,11 +403,12 @@ type StatusPropertySchemaDefinition = BasePropertySchemaDefinition & {
 
 /**
  * Date property - stores dates or date ranges.
+ * `notion.date("YYYY-MM-DD", end?)` or `notion.datetime({ start, end?, timeZone: "America/New_York" })`.
  *
  * @example
  * { resourceId: "due-date-prop", name: "Due Date", type: "date" }
  */
-type DatePropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type DatePropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "date"
 }
 
@@ -412,7 +418,7 @@ type DatePropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "completed-prop", name: "Completed", type: "checkbox" }
  */
-type CheckboxPropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type CheckboxPropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "checkbox"
 }
 
@@ -422,7 +428,7 @@ type CheckboxPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "website-prop", name: "Website", type: "url" }
  */
-type UrlPropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type UrlPropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "url"
 }
 
@@ -432,7 +438,7 @@ type UrlPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "email-prop", name: "Contact Email", type: "email" }
  */
-type EmailPropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type EmailPropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "email"
 }
 
@@ -442,9 +448,10 @@ type EmailPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "phone-prop", name: "Phone", type: "phone_number" }
  */
-type PhoneNumberPropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "phone_number"
-}
+export type PhoneNumberPropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "phone_number"
+  }
 
 /**
  * Relation property schema definition for linking to other databases.
@@ -487,7 +494,7 @@ type PhoneNumberPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * - The Project automatically shows that Issue in its "Related Issues" property
  * - Both sides stay in sync automatically
  */
-type RelationPropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type RelationPropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "relation"
   /**
    * ResourceId of the target data source to create relations to.
@@ -528,7 +535,7 @@ type RelationPropertySchemaDefinition = BasePropertySchemaDefinition & {
  *   expression: 'prop("hours-estimate-prop") - prop("hours-spent-prop")'
  * }
  */
-type FormulaPropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type FormulaPropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "formula"
   expression?: string
 }
@@ -537,12 +544,13 @@ type FormulaPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * Aggregation types for rollup properties.
  *
  * Available aggregations depend on the target property type:
- * - All types: count_values, unique, empty, not_empty, percent_empty, percent_not_empty, show_unique
+ * - All types: count, count_values, unique, empty, not_empty, percent_empty, percent_not_empty, show_unique
  * - Numbers: sum, average, median, min, max, range
  * - Dates: earliest_date, latest_date, date_range
  */
-type RollupAggregationType =
+export type RollupAggregationType =
   // Default/property aggregations (available for all types)
+  | "count"
   | "count_values"
   | "unique"
   | "empty"
@@ -566,7 +574,7 @@ type RollupAggregationType =
  * Target property types that can be rolled up.
  * Note: rollup of rollup is NOT supported.
  */
-type RollupTargetPropertyType =
+export type RollupTargetPropertyType =
   | "title"
   | "text"
   | "number"
@@ -632,7 +640,7 @@ type RollupTargetPropertyType =
  *   aggregation: "latest_date"
  * }
  */
-type RollupPropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type RollupPropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "rollup"
   /**
    * ResourceId of the relation property in the same database that provides the related records.
@@ -663,7 +671,7 @@ type RollupPropertySchemaDefinition = BasePropertySchemaDefinition & {
    * Available aggregations depend on targetPropertyType:
    * - Numbers: sum, average, median, min, max, range
    * - Dates: earliest_date, latest_date, date_range
-   * - All types: count_values, unique, empty, not_empty, percent_empty, percent_not_empty, show_unique
+   * - All types: count, count_values, unique, empty, not_empty, percent_empty, percent_not_empty, show_unique
    */
   aggregation?: RollupAggregationType
 }
@@ -677,9 +685,10 @@ type RollupPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "created-prop", name: "Created", type: "created_time" }
  */
-type CreatedTimePropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "created_time"
-}
+export type CreatedTimePropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "created_time"
+  }
 
 /**
  * Last edited time property schema definition.
@@ -690,9 +699,10 @@ type CreatedTimePropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "last-modified-prop", name: "Last Modified", type: "last_edited_time" }
  */
-type LastEditedTimePropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "last_edited_time"
-}
+export type LastEditedTimePropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "last_edited_time"
+  }
 
 /**
  * Created by property schema definition.
@@ -703,7 +713,7 @@ type LastEditedTimePropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "author-prop", name: "Author", type: "created_by" }
  */
-type CreatedByPropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type CreatedByPropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "created_by"
 }
 
@@ -716,9 +726,10 @@ type CreatedByPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "editor-prop", name: "Editor", type: "last_edited_by" }
  */
-type LastEditedByPropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "last_edited_by"
-}
+export type LastEditedByPropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "last_edited_by"
+  }
 
 /**
  * Auto-increment ID property schema definition.
@@ -732,15 +743,16 @@ type LastEditedByPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "task-id-prop", name: "Task ID", type: "auto_increment_id", prefix: "TASK" }
  */
-type AutoIncrementIdPropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "auto_increment_id"
-  /**
-   * Optional prefix for the auto-increment ID (e.g., "TASK" produces TASK-1, TASK-2, ...)
-   *
-   * This must be unique within the workspace
-   */
-  prefix?: string
-}
+export type AutoIncrementIdPropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "auto_increment_id"
+    /**
+     * Optional prefix for the auto-increment ID (e.g., "TASK" produces TASK-1, TASK-2, ...)
+     *
+     * This must be unique within the workspace
+     */
+    prefix?: string
+  }
 
 /**
  * File property - stores file attachments and media.
@@ -749,20 +761,26 @@ type AutoIncrementIdPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "attachments-prop", name: "Attachments", type: "file" }
  */
-type FilePropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type FilePropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "file"
 }
 
 /**
  * Person property - stores references to Notion users.
  */
-type PersonPropertySchemaDefinition = BasePropertySchemaDefinition & {
+export type PersonPropertySchemaDefinition = BasePropertySchemaDefinition & {
   type: "person"
   /** Limit the property to a single user (omit for unlimited). */
   limit?: 1
 }
 
-type PropertySchemaDefinition =
+export type VerificationPropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "verification"
+    verifierPropertyResourceId: ResourceId
+  }
+
+export type PropertySchemaDefinition =
   | TitlePropertySchemaDefinition
   | TextPropertySchemaDefinition
   | NumberPropertySchemaDefinition
@@ -784,12 +802,13 @@ type PropertySchemaDefinition =
   | AutoIncrementIdPropertySchemaDefinition
   | FilePropertySchemaDefinition
   | PersonPropertySchemaDefinition
+  | VerificationPropertySchemaDefinition
 
 /**
  * Pins the property in the row of compact chips directly below the page
  * title. At most 15 properties can be pinned.
  */
-type PinnedPropertyConfig = {
+export type PinnedPropertyConfig = {
   property: ResourceId
   position: "pinned"
 }
@@ -799,7 +818,7 @@ type PinnedPropertyConfig = {
  * and the page content. Use for properties that deserve prominent placement,
  * such as an AI summary or meeting attendees.
  */
-type StandalonePropertyConfig = {
+export type StandalonePropertyConfig = {
   property: ResourceId
   position: "standalone"
 }
@@ -811,7 +830,7 @@ type StandalonePropertyConfig = {
  * standalone property sections, and page content, with the remaining
  * properties grouped in the page sidebar.
  */
-type DatabasePageLayout = {
+export type DatabasePageLayout = {
   type: "simpleWithPropertiesInSidebar"
   /**
    * Per-property placement on the page, in display order: pinned properties
@@ -836,7 +855,7 @@ type DatabasePageLayout = {
   showTemplates?: boolean
 }
 
-type DataSourceSchema = {
+export type DataSourceSchema = {
   resourceId: ResourceId
   name: string
   /**
@@ -861,7 +880,7 @@ type DataSourceSchema = {
 /**
  * A single text token - either plain text [string] or text with annotations [string, annotations[]].
  */
-type SimpleTextToken = [string] | [string, ...unknown[]]
+export type SimpleTextToken = [string] | [string, ...unknown[]]
 
 /**
  * Simplified text value for Infra as Code property values.
@@ -871,7 +890,7 @@ type SimpleTextToken = [string] | [string, ...unknown[]]
  * preventing validator generation. This simplified type matches what the
  * runtime validation in validation.ts actually checks.
  */
-type SimpleTextValue = Array<SimpleTextToken>
+export type SimpleTextValue = Array<SimpleTextToken>
 
 /**
  * Text value returned by Infra as Code text helper functions.
@@ -880,14 +899,14 @@ type SimpleTextValue = Array<SimpleTextToken>
  * JSON-serializable text token format instead of exposing the full internal
  * shared text helper shape.
  */
-type TextValue = SimpleTextValue
+export type TextValue = SimpleTextValue
 
 /**
  * A reference to an uploaded file, returned by `notion.file()`.
  * Used in database file property values.
  * @generateValidator
  */
-type FileReference = {
+export type FileReference = {
   type: "file"
   resourceId: ResourceId
 }
@@ -900,7 +919,7 @@ type FileReference = {
  * `format.page_cover`, matching built-in Notion cover URLs.
  * @generateValidator
  */
-type PageCoverReference = (
+export type PageCoverReference = (
   | FileReference
   | {
       type: "url"
@@ -923,18 +942,19 @@ type PageCoverReference = (
  * - Array<FileReference> (from notion.file() for file properties)
  * - undefined
  */
-type PropertyValue =
-  | SimpleTextValue
-  | Array<string>
+export type PropertyValue =
   | string
   | number
-  | Array<FileReference>
+  | SimpleTextValue
+  | string[]
+  | FileReference[]
+  | VerificationPropertyValue
   | undefined
 
 /**
  * Maps a literal properties tuple to the union of property names.
  */
-type PropertyNameUnion<P extends PropertySchemaDefinition[]> =
+export type PropertyNameUnion<P extends PropertySchemaDefinition[]> =
   P[number] extends { name: infer N } ? (N extends string ? N : never) : never
 
 /**
@@ -944,8 +964,9 @@ type PropertyNameUnion<P extends PropertySchemaDefinition[]> =
  * filter-only. Helper-valued properties take their runtime helper results
  * (`notion.file`, `notion.date`, `notion.checkbox`, `notion.select`,
  * `notion.multiSelect`, etc.).
+ * Date properties accept `notion.date("YYYY-MM-DD", end?)` or `notion.datetime({ start, end?, timeZone: "America/New_York" })`; datetime values use the explicit zone if provided, always ignoring ISO offsets.
  */
-type PropertyInputForDefinition<S extends PropertySchemaDefinition> = {
+export type PropertyInputForDefinition<S extends PropertySchemaDefinition> = {
   relation: ResourceId | Array<ResourceId>
   file: Array<FileReference>
   select: string
@@ -959,6 +980,7 @@ type PropertyInputForDefinition<S extends PropertySchemaDefinition> = {
   last_edited_by: never
   auto_increment_id: never
   person: never
+  verification: VerificationInput & { type: "verification" }
   title: SimpleTextValue | string | number
   text: SimpleTextValue | string | number
   number: SimpleTextValue | string | number
@@ -973,26 +995,33 @@ type PropertyInputForDefinition<S extends PropertySchemaDefinition> = {
  * Shape of the properties object accepted by DataSourceHandle.addPage based on a
  * literal schema snapshot provided at database creation time.
  */
-type PropertiesInputForSchema<P extends PropertySchemaDefinition[]> = {
+export type PropertiesInputForSchema<P extends PropertySchemaDefinition[]> = {
   [K in PropertyNameUnion<P>]?:
     | PropertyInputForDefinition<Extract<P[number], { name: K }>>
     | undefined
 }
 
-type ViewType = "table" | "board" | "calendar" | "list" | "gallery" | "timeline"
+export type ViewType =
+  | "table"
+  | "board"
+  | "calendar"
+  | "list"
+  | "gallery"
+  | "feed"
+  | "timeline"
 
-type PropertyVisibility = "show" | "hide" | "hide_if_empty"
+export type PropertyVisibility = "show" | "hide" | "hide_if_empty"
 
 /**
- * Format for a single visible column entry in a view (table / board / list /
- * gallery / timeline).
+ * Format for a single visible property entry in a view (table / board / list /
+ * gallery / feed / timeline).
  *
  * `property` must be the `resourceId` of a property in the view's data
  * source, matching the same convention used by board `groupBy.property`,
  * `calendarBy`, and `timelineBy`.
  *
  */
-type PropertyFormat = {
+export type PropertyFormat = {
   /** ResourceId of the property in the view's data source. */
   property: ResourceId
   visible?: boolean
@@ -1008,7 +1037,7 @@ type PropertyFormat = {
  * and board `groupBy.property`.
  *
  */
-type GroupFormat = {
+export type GroupFormat = {
   /** ResourceId of the property in the view's data source. */
   property: ResourceId
   hidden?: boolean | undefined
@@ -1016,6 +1045,56 @@ type GroupFormat = {
     type: string
     value?: string | boolean | number | null
   }
+}
+
+export type GroupByFormatBase = {
+  /** ResourceId of the property in the view's data source. */
+  property: ResourceId
+  /** Whether groups with no pages are visible. Defaults to "show". */
+  emptyGroupVisibility?: "show" | "hide"
+  statusBy?: never
+}
+
+export type SelectGroupByFormat = GroupByFormatBase & {
+  type: "select" | "multi_select"
+}
+
+export type StatusGroupByFormat = Omit<GroupByFormatBase, "statusBy"> & {
+  type: "status"
+  /** Groups status values by their canonical status group or individual option. */
+  statusBy?: "group" | "option" | undefined
+}
+
+export type PersonGroupByFormat = GroupByFormatBase & {
+  type: "person" | "created_by" | "last_edited_by"
+}
+
+export type DateGroupByFormat = GroupByFormatBase & {
+  type: "date" | "created_time" | "last_edited_time" | "last_visited_time"
+}
+
+export type TextGroupByFormat = GroupByFormatBase & {
+  type: "text" | "title" | "url" | "email" | "phone_number"
+}
+
+export type NumberGroupByFormat = GroupByFormatBase & {
+  type: "number"
+}
+
+export type CheckboxGroupByFormat = GroupByFormatBase & {
+  type: "checkbox"
+}
+
+export type RelationGroupByFormat = GroupByFormatBase & {
+  type: "relation"
+}
+
+export type LocationGroupByFormat = GroupByFormatBase & {
+  type: "location"
+}
+
+export type FormulaGroupByFormat = GroupByFormatBase & {
+  type: "formula"
 }
 
 /**
@@ -1026,63 +1105,47 @@ type GroupFormat = {
  * `CalendarViewSchema.calendarBy`, and `TimelineViewSchema.timelineBy`.
  *
  */
-type GroupByFormat = {
-  /** ResourceId of the property in the view's data source. */
-  property: ResourceId
-  type?:
-    | "number"
-    | "select"
-    | "multi_select"
-    | "status"
-    | "person"
-    | "created_by"
-    | "last_edited_by"
-    | "date"
-    | "created_time"
-    | "last_edited_time"
-    | "last_visited_time"
-    | "text"
-    | "title"
-    | "url"
-    | "email"
-    | "phone_number"
-    | "checkbox"
-    | "relation"
-    | "location"
-    | "formula"
-    | undefined
-  /** Whether groups with no pages are visible. Defaults to "show". */
-  emptyGroupVisibility?: "show" | "hide"
-}
+export type GroupByFormat =
+  | SelectGroupByFormat
+  | StatusGroupByFormat
+  | PersonGroupByFormat
+  | DateGroupByFormat
+  | TextGroupByFormat
+  | NumberGroupByFormat
+  | CheckboxGroupByFormat
+  | RelationGroupByFormat
+  | LocationGroupByFormat
+  | FormulaGroupByFormat
 
-type CoverFormat =
+export type CoverFormat =
   | { type: "page_cover" }
   | { type: "page_content" }
   | { type: "page_content_first" }
   | { type: "property"; property: string }
 
-type CoverSizeFormat = "small" | "medium" | "large"
+export type CoverSizeFormat = "small" | "medium" | "large"
 
-type CoverAspectFormat = "contain" | "cover"
+export type CoverAspectFormat = "contain" | "cover"
 
-type DatabaseViewSortDirection = "ascending" | "descending"
+export type DatabaseViewSortDirection = "ascending" | "descending"
 
 /**
  * Sort schema for ordering database view results.
  * Sorts are applied in order — all pages are first sorted by the first sort,
  * then ties are broken by the second sort, and so on.
  */
-type PropertyViewSortSchema = {
+export type PropertyViewSortSchema = {
   propertyId: string
   direction: DatabaseViewSortDirection
 }
 
-type BasePropertyFilter = {
+export type BasePropertyFilter = {
   propertyId: string
+  type: "property"
 }
 
-type TextPropertyFilter = {
-  propertyType: "text" | "title" | "url" | "email" | "phone_number"
+export type TextPropertyFilter = {
+  propertyType: "title" | "text" | "url" | "email" | "phone_number"
   operator:
     | "string_is"
     | "string_is_not"
@@ -1093,7 +1156,7 @@ type TextPropertyFilter = {
   value: string
 } & BasePropertyFilter
 
-type NumberPropertyFilter = {
+export type NumberPropertyFilter = {
   propertyType: Extract<PropertyType, "number">
   operator:
     | "number_equals"
@@ -1105,31 +1168,31 @@ type NumberPropertyFilter = {
   value: number
 } & BasePropertyFilter
 
-type CheckboxPropertyFilter = {
+export type CheckboxPropertyFilter = {
   propertyType: Extract<PropertyType, "checkbox">
   operator: "checkbox_is" | "checkbox_is_not"
   value: boolean
 } & BasePropertyFilter
 
-type SelectPropertyFilter = {
+export type SelectPropertyFilter = {
   propertyType: Extract<PropertyType, "select">
   operator: "enum_is" | "enum_is_not"
-  value: string
+  value: Array<string>
 } & BasePropertyFilter
 
-type MultiSelectPropertyFilter = {
+export type MultiSelectPropertyFilter = {
   propertyType: Extract<PropertyType, "multi_select">
   operator: "enum_contains" | "enum_does_not_contain" | "enum_contains_all"
-  value: string
+  value: Array<string>
 } & BasePropertyFilter
 
-type StatusPropertyFilter = {
+export type StatusPropertyFilter = {
   propertyType: Extract<PropertyType, "status">
   operator: "status_is" | "status_is_not"
-  value: string
+  value: Array<string>
 } & BasePropertyFilter
 
-type DatePropertyFilter = {
+export type DatePropertyFilter = {
   propertyType: "date" | "created_time" | "last_edited_time"
   operator:
     | "date_is"
@@ -1141,11 +1204,11 @@ type DatePropertyFilter = {
   value: string
 } & BasePropertyFilter
 
-type RelationPropertyFilter = {
+export type RelationPropertyFilter = {
   propertyType: Extract<PropertyType, "relation">
   operator: "relation_contains" | "relation_does_not_contain"
-  /** Resource ID of the related page (must reference a page created in the same script) */
-  value: string
+  /** Resource ID(s) of related pages created in the same script */
+  value: Array<ResourceId>
 } & BasePropertyFilter
 
 /**
@@ -1153,10 +1216,11 @@ type RelationPropertyFilter = {
  * does not contain) the viewer (the `"me"` template variable, resolved at
  * read time).
  */
-type PersonPropertyFilter = {
-  propertyType: "person" | "created_by" | "last_edited_by"
+export type PersonPropertyFilter = {
+  propertyType: "created_by" | "last_edited_by" | "person"
   operator: "person_contains" | "person_does_not_contain"
-  value: { type: "relative"; value: "me" }
+  // TODO: Support more Person property types in the future
+  value: [{ type: "relative"; value: "me" }]
 } & BasePropertyFilter
 
 /**
@@ -1169,12 +1233,13 @@ type PersonPropertyFilter = {
  * @example Text property filter
  * {
  *   propertyId: "name-prop",
+ *   type: "property",
  *   propertyType: "text",
  *   operator: "string_contains",
  *   value: "Project"
  * }
  */
-type PropertyViewFilterSchema =
+export type PropertyFilterSchema =
   | TextPropertyFilter
   | NumberPropertyFilter
   | CheckboxPropertyFilter
@@ -1185,11 +1250,22 @@ type PropertyViewFilterSchema =
   | RelationPropertyFilter
   | PersonPropertyFilter
 
+export type FilterSchema = Array<PropertyFilterSchema | AdvancedFilterSchema>
+
+/**
+ * @generateValidator
+ */
+export type AdvancedFilterSchema = {
+  type: "advanced"
+  operator: "and" | "or"
+  filters: FilterSchema
+}
+
 /**
  * Base view schema shared by all view types.
  *
- * IMPORTANT: dataSourceResourceId is REQUIRED for all views.
- * This must match the resourceId of one of the database's data sources.
+ * IMPORTANT: dataSourceResourceId is REQUIRED for all views. It must match the
+ * resourceId of a data source created in this script.
  *
  * @example
  * // When creating a database with a data source
@@ -1204,12 +1280,24 @@ type PropertyViewFilterSchema =
  *   type: "table",
  *   dataSourceResourceId: "my-datasource"  // REQUIRED: matches data source above
  * })
+ *
+ * @example
+ * // A linked database can reference a data source from another database
+ * const linkedDatabase = await notion.database({
+ *   resourceId: "linked-database",
+ *   parent: { type: "resourceId", resourceId: "project-page" },
+ *   views: [{
+ *     resourceId: "linked-table-view",
+ *     type: "table",
+ *     dataSourceResourceId: "my-datasource"  // REQUIRED: created elsewhere in this script
+ *   }]
+ * })
  */
-type BaseViewSchema = {
+export type BaseViewSchema = {
   resourceId: ResourceId
   name?: string
   type: ViewType
-  /** REQUIRED: Must match an existing data source's resourceId */
+  /** REQUIRED: Must match a data source's resourceId created in this script. */
   dataSourceResourceId: ResourceId
   /**
    * Optional resource ID of a template page in this view's data source to use as
@@ -1220,24 +1308,26 @@ type BaseViewSchema = {
    */
   defaultTemplate?: ResourceId
   /**
-   * Optional: create this view to be used as a linked views referenced by
+   * Optional: create this view to be used as a linked view referenced by
    * `<database>` tags in page content markdown. Does not attach the view to the
-   * database block's.
+   * database block's main view tabs.
    */
   ephemeral?: boolean
   sorts?: Array<PropertyViewSortSchema>
   /** Optional filter to control which pages appear in this view. */
-  filters?: PropertyViewFilterSchema[]
+  filters?: FilterSchema
+  /** Whether page icons are shown in this view. */
+  showPageIcon?: boolean
 }
 
-type TableViewSchema = BaseViewSchema & {
+export type TableViewSchema = BaseViewSchema & {
   type: "table"
   properties?: Array<PropertyFormat>
   wrap?: boolean
   groupBy?: GroupByFormat
 }
 
-type BoardViewSchema = BaseViewSchema & {
+export type BoardViewSchema = BaseViewSchema & {
   type: "board"
   properties?: Array<PropertyFormat>
   groupBy?: GroupByFormat
@@ -1248,7 +1338,7 @@ type BoardViewSchema = BaseViewSchema & {
   wrap?: boolean
 }
 
-type CalendarViewSchema = BaseViewSchema & {
+export type CalendarViewSchema = BaseViewSchema & {
   type: "calendar"
   properties?: Array<PropertyFormat>
   /**
@@ -1262,13 +1352,13 @@ type CalendarViewSchema = BaseViewSchema & {
   showWeekends?: boolean
 }
 
-type ListViewSchema = BaseViewSchema & {
+export type ListViewSchema = BaseViewSchema & {
   type: "list"
   properties?: Array<PropertyFormat>
   groupBy?: GroupByFormat
 }
 
-type GalleryViewSchema = BaseViewSchema & {
+export type GalleryViewSchema = BaseViewSchema & {
   type: "gallery"
   properties?: Array<PropertyFormat>
   cover?: CoverFormat
@@ -1276,7 +1366,14 @@ type GalleryViewSchema = BaseViewSchema & {
   coverAspect?: CoverAspectFormat
 }
 
-type TimelineViewSchema = BaseViewSchema & {
+export type FeedViewSchema = BaseViewSchema & {
+  type: "feed"
+  properties?: Array<PropertyFormat>
+  wrap?: boolean
+  showAuthorByline?: boolean
+}
+
+export type TimelineViewSchema = BaseViewSchema & {
   type: "timeline"
   properties?: Array<PropertyFormat>
   tableProperties?: Array<PropertyFormat>
@@ -1297,12 +1394,13 @@ type TimelineViewSchema = BaseViewSchema & {
   showTable?: boolean
 }
 
-type ViewSchema =
+export type ViewSchema =
   | TableViewSchema
   | BoardViewSchema
   | CalendarViewSchema
   | ListViewSchema
   | GalleryViewSchema
+  | FeedViewSchema
   | TimelineViewSchema
 
 /**
@@ -1312,7 +1410,7 @@ type ViewSchema =
  * Infra as Code script. Parenting to existing records outside the script is not supported
  * for permission safety reasons.
  */
-type DatabaseIntent = {
+export type DatabaseIntent = {
   resourceId: ResourceId
   parent: Parent
   dataSources: Array<DataSourceSchema>
@@ -1325,6 +1423,26 @@ type DatabaseIntent = {
    * Optional cover for the database page.
    */
   cover?: PageCoverReference
+  /**
+   * Whether to hide the data source title above an inline database. Defaults to false.
+   */
+  hideDataSourceTitle?: boolean
+  /**
+   * Whether to hide the default database title when it is empty. Defaults to false.
+   *
+   * For a database that owns multiple data sources, including one that also links
+   * to another database, Notion otherwise generates a default title when left empty.
+   * Setting this to true would hide these default titles.
+   *
+   * Some examples look like this:
+   * - Multiple owned data sources: "First DB and Second DB"
+   * - Owned and linked data sources: "First DB and View of Other DB"
+   */
+  hideDatabaseTitleIfEmpty?: boolean
+  /**
+   * Optional name for the database. For a linked views-only database (one with
+   * no data sources), this is applied directly to the database block as its title.
+   */
   name?: string
   /**
    * Optional description for the database. A database with a description must
@@ -1334,7 +1452,7 @@ type DatabaseIntent = {
   description?: string
 }
 
-type SpaceUserMember = {
+export type SpaceUserMember = {
   role: "page_guest" | "restricted_member" | "member" | "owner"
 } & ({ userId: string } | { email: string })
 
@@ -1345,7 +1463,7 @@ type SpaceUserMember = {
  * an existing space. This restriction exists for permission safety: all operations
  * run in a freshly created space where the executing user has full ownership.
  */
-type SpaceIntent = {
+export type SpaceIntent = {
   resourceId: ResourceId
   name: string
   /**
@@ -1359,12 +1477,12 @@ type SpaceIntent = {
   members?: SpaceUserMember[]
 }
 
-type TeamspaceMember = {
+export type TeamspaceMember = {
   userId: string
   role: "owner" | "member"
 }
 
-type TeamspaceAccessLevel = "default" | "open" | "closed" | "private"
+export type TeamspaceAccessLevel = "default" | "open" | "closed" | "private"
 
 /**
  * Arguments for creating a teamspace.
@@ -1373,7 +1491,7 @@ type TeamspaceAccessLevel = "default" | "open" | "closed" | "private"
  * Infra as Code script. Creating teamspaces in existing spaces is not supported for
  * permission safety reasons.
  */
-type TeamspaceIntent = {
+export type TeamspaceIntent = {
   resourceId: ResourceId
   name: string
   accessLevel: TeamspaceAccessLevel
@@ -1391,7 +1509,7 @@ type TeamspaceIntent = {
  * Custom agents are AI agents scoped to a Notion workspace.
  *
  */
-type CustomAgentIntent = {
+export type CustomAgentIntent = {
   resourceId: ResourceId
   name: string
   /**
@@ -1462,7 +1580,7 @@ type CustomAgentIntent = {
  * downstream IaC primitives (e.g. sharedResources) can reference the agent
  * by its forward-declared ID.
  */
-type CustomAgentHandle = {
+export type CustomAgentHandle = {
   resourceId: ResourceId
 }
 
@@ -1482,11 +1600,11 @@ type CustomAgentHandle = {
  *   Project: notion.relation([projectPage])  // ERROR: PageHandle is not assignable to string
  * }
  */
-type PageHandle = {
+export type PageHandle = {
   resourceId: ResourceId
 }
 
-type DataSourceHandle<P extends PropertySchemaDefinition[]> = {
+export type DataSourceHandle<P extends PropertySchemaDefinition[]> = {
   resourceId: ResourceId
   /** Literal snapshot of the data source's properties at database creation */
   schema: P
@@ -1521,28 +1639,35 @@ type DataSourceHandle<P extends PropertySchemaDefinition[]> = {
      * references are also accepted.
      */
     cover?: PageCoverReference
+    /**
+     * Whether the page renders full width (no side margins).
+     */
+    fullWidth?: boolean
   }): PageHandle
 }
 
 /**
  * Handle returned when creating a database.
  */
-type DatabaseHandle<
+export type DatabaseHandle<
   DS extends {
     resourceId: ResourceId
     properties: PropertySchemaDefinition[]
   }[],
 > = {
   resourceId: ResourceId
-  dataSources: Record<ResourceId, DataSourceHandle<PropertySchemaDefinition[]>>
-  /** Get a data source handle by id with schema-aware typing */
-  getDataSource: <K extends DS[number]>(
-    id: K["resourceId"]
-  ) => DataSourceHandle<K["properties"]>
-  /**
-   * Record view intent.
-   * Views require a dataSourceResourceId that matches one of the database's data sources.
-   */
+  dataSources: {
+    [DataSource in DS[number] as DataSource["resourceId"]]: DataSourceHandle<
+      DataSource["properties"]
+    >
+  }
+  /** Get a data source handle by ID with schema-aware typing. */
+  getDataSource: <DataSourceResourceId extends DS[number]["resourceId"]>(
+    id: DataSourceResourceId,
+  ) => DataSourceHandle<
+    Extract<DS[number], { resourceId: DataSourceResourceId }>["properties"]
+  >
+  /** Records a view that references a data source created in this script. */
   addView: (view: ViewSchema) => void
 }
 
@@ -1565,7 +1690,7 @@ type DatabaseHandle<
  *   properties: { title: notion.text("Page Title") }
  * })
  */
-type TeamspaceHandle = {
+export type TeamspaceHandle = {
   resourceId: ResourceId
   /** Add a database to this teamspace */
   addDatabase<
@@ -1577,7 +1702,7 @@ type TeamspaceHandle = {
   >(
     args: Omit<DatabaseIntent, "parent" | "dataSources"> & {
       dataSources: DS
-    }
+    },
   ): DatabaseHandle<DS>
   /** Add a page to this teamspace */
   addPage(args: {
@@ -1607,10 +1732,14 @@ type TeamspaceHandle = {
      * references are also accepted.
      */
     cover?: PageCoverReference
+    /**
+     * Whether the page renders full width (no side margins).
+     */
+    fullWidth?: boolean
   }): PageHandle
 }
 
-type SpaceHandle = {
+export type SpaceHandle = {
   resourceId: ResourceId
   addTeamspace(args: Omit<TeamspaceIntent, "parent">): TeamspaceHandle
 }
@@ -1621,7 +1750,7 @@ type SpaceHandle = {
  * without needing to buffer views until the database is finalized.
  *
  */
-type ViewIntent = {
+export type ViewIntent = {
   /** The resourceId of the database to add the view to */
   databaseResourceId: ResourceId
   /** The view configuration */
@@ -1634,7 +1763,7 @@ type ViewIntent = {
  * is not embedded inline via markdown content.
  *
  */
-type FileAttachmentIntent = {
+export type FileAttachmentIntent = {
   /** Resource ID of the file from the file manifest */
   resourceId: ResourceId
   /** Resource ID of the parent page to attach the file to */
@@ -1652,7 +1781,7 @@ type FileAttachmentIntent = {
  *
  * @generateValidator
  */
-type InfraAsCodeIntent =
+export type InfraAsCodeIntent =
   | ({ type: "space" } & SpaceIntent)
   | ({ type: "teamspace" } & TeamspaceIntent)
   | ({ type: "database" } & DatabaseIntent)
@@ -1663,10 +1792,29 @@ type InfraAsCodeIntent =
 
 // Property value helper functions
 
+export type DateTimeInput = {
+  start: string
+  end?: string
+  timeZone?: string
+}
+
+export type VerificationInput =
+  | {
+      state: "verified"
+      // Set the verification expiration with notion.datetime(...); omit it for indefinite verification.
+      datetime?: TextValue
+    }
+  | { state: "unverified" }
+
+/** @generateValidator src/server/helpers/infraAsCode/propertyValueHelpers.validators.ts @infraAsCodePublic */
+export type VerificationPropertyValue = VerificationInput & {
+  type: "verification"
+}
+
 /**
  * Property types supported by infra as code scripts.
  */
-type PropertyType =
+export type PropertyType =
   | "title"
   | "text"
   | "number"
@@ -1685,7 +1833,7 @@ type PropertyType =
   | "created_by"
   | "last_edited_by"
 
-declare const notion: {
+export declare const notion: {
   /**
    * Creates a new page under a page, database, or teamspace.
    * Pages are the basic content units in Notion that can contain rich content.
@@ -1693,18 +1841,21 @@ declare const notion: {
   page: (args: PageIntent) => PageHandle
 
   /**
-   * Creates a new database with a custom schema and returns a typed
-   * DatabaseHandle for data source access and views.
-   * Databases contain structured data with properties and views.
+   * Creates a database and returns a typed DatabaseHandle for data source access
+   * and views.
+   *
+   * Omit `dataSources` for a linked (i.e. views-only) database. Declare at
+   * least one non-ephemeral view in `views`; those views may reference data
+   * sources created elsewhere in the script.
    */
   database: <
     DS extends Array<{
       resourceId: ResourceId
       name: string
       properties: Array<PropertySchemaDefinition>
-    }>,
+    }> = [],
   >(
-    args: Omit<DatabaseIntent, "dataSources"> & { dataSources: DS }
+    args: Omit<DatabaseIntent, "dataSources"> & { dataSources?: DS },
   ) => DatabaseHandle<DS>
 
   /**
@@ -1723,7 +1874,24 @@ declare const notion: {
    */
   customAgent: (args: CustomAgentIntent) => CustomAgentHandle
 
+  /**
+   * Creates an all-day date-property value.
+   *
+   * @example
+   * notion.date("2024-12-31")
+   * notion.date("2024-12-01", "2024-12-31")
+   */
   date: (startDate: string, endDate?: string) => TextValue
+  /**
+   * Creates a timed date-property value. Both timestamps must be full ISO 8601
+   * values including an offset. `timeZone` defaults to UTC; a supplied IANA zone
+   * controls display while ISO offsets are ignored.
+   *
+   * @example
+   * notion.datetime({ start: "2024-12-31T09:00:00.000-05:00", timeZone: "America/New_York" })
+   */
+  datetime: (value: DateTimeInput) => TextValue
+  verification: (value: VerificationInput) => VerificationPropertyValue
   text: (value: string) => TextValue
   number: (value: number) => TextValue
   select: (value: string) => string
@@ -1742,12 +1910,12 @@ declare const notion: {
  * This includes all block types, rich text formatting, and XML elements.
  * Used for the content parameter in page creation and database page creation.
  */
-declare const NOTION_AS_CODE_MARKDOWN_SPEC = `
+declare const INFRA_AS_CODE_MARKDOWN_SPEC = `
 ### Notion-flavored Markdown
 Notion-flavored Markdown is a variant of standard Markdown with additional features to support all Block and Rich text types.
 Use tabs for indentation.
-Use backslashes to escape characters. For example, \\* will render as * and not as a bold delimiter.
-These are the characters that should be escaped: \\ * ~ \` $ [ ] < > { } | ^
+Use backslashes to escape characters. For example, \* will render as * and not as a bold delimiter.
+These are the characters that should be escaped: \ * ~ \` $ [ ] < > { } | ^
 Block types:
 Markdown blocks use a {color="Color"} attribute list to set a block color.
 Text:
@@ -1862,8 +2030,8 @@ $$
 \`\`\`language
 Code
 \`\`\`
-Note: Set the language if known (e.g. mermaid). Do NOT escape special characters inside code blocks. Code block content is literal - write it exactly as it should appear. For example, write \`const arr = [1, 2, 3]\` NOT \`const arr = \\[1, 2, 3\\]\`. Backslash escaping rules only apply outside of code blocks.
-Mermaid diagrams: Use \`\`\`mermaid as the language. Enclose node text in double quotes when it contains special characters like parentheses, e.g. \`A["Notion (App + API)"]\`. Use \`<br>\` for line breaks inside node labels, not \\n. Do not use \\( or \\) inside Mermaid — instead just wrap the whole label in double quotes.
+Note: Set the language if known (e.g. mermaid). Do NOT escape special characters inside code blocks. Code block content is literal - write it exactly as it should appear. For example, write \`const arr = [1, 2, 3]\` NOT \`const arr = \[1, 2, 3\]\`. Backslash escaping rules only apply outside of code blocks.
+Mermaid diagrams: Use \`\`\`mermaid as the language. Enclose node text in double quotes when it contains special characters like parentheses, e.g. \`A["Notion (App + API)"]\`. Use \`<br>\` for line breaks inside node labels, not \n. Do not use \( or \) inside Mermaid — instead just wrap the whole label in double quotes.
 XML blocks use the 'color' attribute to set a block color.
 Mentions:
 Users, pages, databases, data sources, agents, dates, and datetimes can be mentioned:
@@ -1916,13 +2084,14 @@ Callouts can contain multiple blocks and nested children, not just inline rich t
 For any formatting inside of callout blocks, use Notion-flavored Markdown, not HTML. For instance, bold text in a callout should be wrapped in **, not <strong>.
 Columns:
 <columns>
-	<column>
+	<column ratio?="50">
 		Children
 	</column>
-	<column>
+	<column ratio?="50">
 		Children
 	</column>
 </columns>
+- ratio: Optional column width as a percentage of the full width, e.g. 50 for half. Omit it to use the default even split when creating columns. When updating existing columns, set every ratio explicitly.
 Custom emoji:
 :emoji_name:
 Page:
@@ -1941,6 +2110,11 @@ Audio:
 <audio src="{{URL}}" color?="Color">Caption</audio>
 File:
 <file src="{{URL}}" color?="Color">Caption</file>
+Embed (renders an HTML attachment file inline in a sandboxed iframe):
+<embed src="{{URL}}" color?="Color">Caption</embed>
+"HTML", "HTML block", "HTML artifact", and "HTML embed" all mean an HTML attachment rendered with <embed>. Never create one as a code block or file block.
+Always use <embed> for HTML attachment files
+For files created by the MCP create-attachment tool, use its returned file-upload:// source as the src value. The source is resolved and attached when create-pages or update-page saves the block. Keep the returned file upload ID if you need to retrieve the text later with download-attachment.
 Image:
 ![Caption](URL) {color?="Color"}
 PDF:
@@ -1987,12 +2161,3 @@ Unknown (a block type that is not supported in the API yet):
 <unknown url="{{URL}}" alt="Alt"/>
 </advanced-blocks>
 `
-
-export { notion }
-export type {
-  InfraAsCodeIntent, SpaceIntent, TeamspaceIntent, DatabaseIntent, PageIntent,
-  ViewIntent, FileAttachmentIntent, CustomAgentIntent,
-  PropertySchemaDefinition, DataSourceSchema, ViewSchema, DatabasePageLayout,
-  SelectOptionDefinition, StatusOptionDefinition, PropertyValue, InfraAsCodeIcon,
-  SpaceHandle, TeamspaceHandle, DatabaseHandle, DataSourceHandle, PageHandle, CustomAgentHandle,
-}
