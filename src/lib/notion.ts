@@ -8,12 +8,12 @@
 // recorded intents.
 
 import type {
+  ChildPageArgs,
   DatabaseHandle,
   DatabaseIntent,
   DataSourceHandle,
   InfraAsCodeIntent,
   notion as notionDefinition,
-  PageIntent,
   PropertySchemaDefinition,
 } from "./types"
 
@@ -110,12 +110,12 @@ const notion: typeof notionDefinition = {
     recordIntent({ type: "page", ...args })
     return {
       resourceId: args.resourceId,
-      addPage: (pageArgs: Omit<PageIntent, "parent">) =>
+      addPage: (pageArgs: ChildPageArgs) =>
         notion.page({
           ...pageArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },
         }),
-      addDatabase: (dbArgs: Omit<DatabaseIntent, "parent">) =>
+      addDatabase: (dbArgs) =>
         notion.database({
           ...dbArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },
