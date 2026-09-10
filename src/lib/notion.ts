@@ -13,7 +13,6 @@ import type {
   DataSourceHandle,
   InfraAsCodeIntent,
   notion as notionDefinition,
-  PageIntent,
   PropertySchemaDefinition,
 } from "./types"
 
@@ -31,6 +30,16 @@ const notion: typeof notionDefinition = {
       addTeamspace: (tsArgs) =>
         notion.teamspace({
           ...tsArgs,
+          parent: { type: "resourceId", resourceId: args.resourceId },
+        }),
+      addDatabase: (dbArgs) =>
+        notion.database({
+          ...dbArgs,
+          parent: { type: "resourceId", resourceId: args.resourceId },
+        }),
+      addPage: (pageArgs) =>
+        notion.page({
+          ...pageArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },
         }),
     }
@@ -110,12 +119,12 @@ const notion: typeof notionDefinition = {
     recordIntent({ type: "page", ...args })
     return {
       resourceId: args.resourceId,
-      addPage: (pageArgs: Omit<PageIntent, "parent">) =>
+      addPage: (pageArgs) =>
         notion.page({
           ...pageArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },
         }),
-      addDatabase: (dbArgs: Omit<DatabaseIntent, "parent">) =>
+      addDatabase: (dbArgs) =>
         notion.database({
           ...dbArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },

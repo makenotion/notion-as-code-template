@@ -51,7 +51,9 @@ export type ExtractByName<
   N extends string,
 > = Extract<P[number], { name: N }>
 
-export type ResourceId = string
+export type ResourceId<T extends string = string> = string extends T
+  ? string
+  : string & { __resourceIdType?: T }
 
 /**
  * Emoji icon - uses a standard emoji character.
@@ -121,6 +123,160 @@ export type Parent = {
   type: "resourceId"
   resourceId: ResourceId
 }
+
+/**
+ * Weekdays selected by a weekly recurrence schedule, using two-letter codes
+ * from `MO` through `SU`. Set each weekday that should run to `true`.
+ * For example, `{ TU: true, FR: true }` selects Tuesday and Friday.
+ * @generateValidator @strict
+ */
+export type RecurrenceWeekdays = {
+  MO?: true | undefined
+  TU?: true | undefined
+  WE?: true | undefined
+  TH?: true | undefined
+  FR?: true | undefined
+  SA?: true | undefined
+  SU?: true | undefined
+}
+
+/**
+ * Which occurrence of a weekday to use in a month.
+ *
+ * Use `"1st"`, `"2nd"`, `"3rd"`, or `"4th"` for the corresponding occurrence,
+ * or `"last"` for the final occurrence. For example, `"2nd"` with `"TU"`
+ * means the second Tuesday of the month.
+ */
+export type MonthlyWeekdayOccurrence = "1st" | "2nd" | "3rd" | "4th" | "last"
+
+/**
+ * How to choose the day for a monthly recurrence: either a numbered day of the
+ * month, such as the 15th, or a weekday occurrence, such as the second Tuesday.
+ */
+export type MonthlyRecurrenceRestriction =
+  | {
+      type: "day_of_month"
+      /** Integer from 1 through 31. Months without this day are skipped. */
+      day: number
+    }
+  | {
+      type: "weekday_of_month"
+      weekday: keyof RecurrenceWeekdays
+      occurrence: MonthlyWeekdayOccurrence
+    }
+
+/**
+ * Optional stopping condition for a recurrence schedule.
+ */
+export type RecurrenceScheduleEnd =
+  | {
+      type: "date"
+      /**
+       * ISO date or date-time interpreted in the schedule's `timeZone`.
+       *
+       * A date-only value uses the schedule's start time. If the start is also
+       * date-only, both use midnight. A date-time value always uses its own time.
+       */
+      endsAt: string
+    }
+  | {
+      type: "occurrences"
+      /** Integer from 1 through 999. */
+      count: number
+    }
+
+/**
+ * Fields shared by every recurrence frequency.
+ */
+export type RecurrenceScheduleBase = {
+  /** Positive integer from 1 through 99. */
+  interval: number
+  /**
+   * ISO date or date-time, using the same format accepted by `notion.date()`
+   * and `notion.datetime()`.
+   *
+   * A date-only start uses midnight.
+   *
+   * You can include seconds and milliseconds, but they are ignored and not recorded.
+   */
+  start: string
+  /** IANA timezone such as `America/Los_Angeles`. Required for stable recurrence across daylight-saving changes. */
+  timeZone: string
+  end?: RecurrenceScheduleEnd
+}
+
+/**
+ * An hourly recurrence schedule.
+ */
+export type HourlyRecurrenceSchedule = RecurrenceScheduleBase & {
+  frequency: "hour"
+}
+
+/**
+ * A daily recurrence schedule.
+ */
+export type DailyRecurrenceSchedule = RecurrenceScheduleBase & {
+  frequency: "day"
+}
+
+/**
+ * A weekly recurrence schedule.
+ */
+export type WeeklyRecurrenceSchedule = RecurrenceScheduleBase & {
+  frequency: "week"
+  /** At least one weekday must be set to `true`. */
+  weekdays: RecurrenceWeekdays
+}
+
+/**
+ * A monthly recurrence schedule.
+ */
+export type MonthlyRecurrenceSchedule = RecurrenceScheduleBase & {
+  frequency: "month"
+  monthlyRestriction: MonthlyRecurrenceRestriction
+}
+
+/**
+ * A yearly recurrence schedule.
+ */
+export type YearlyRecurrenceSchedule = RecurrenceScheduleBase & {
+  frequency: "year"
+}
+
+/**
+ * A recurrence schedule supported by database templates.
+ *
+ * Database templates support daily through yearly schedules. Hourly schedules
+ * are available for custom agent triggers only.
+ *
+ * @example The second Tuesday of every month
+ * {
+ *   frequency: "month",
+ *   interval: 1,
+ *   monthlyRestriction: {
+ *     type: "weekday_of_month",
+ *     weekday: "TU",
+ *     occurrence: "2nd",
+ *   },
+ *   start: "2026-08-11T09:00:00",
+ *   timeZone: "America/Los_Angeles",
+ * }
+ *
+ * @example Every weekday at 9:00 AM Los Angeles time
+ * {
+ *   frequency: "week",
+ *   interval: 1,
+ *   weekdays: { MO: true, TU: true, WE: true, TH: true, FR: true },
+ *   start: "2026-08-17T09:00:00",
+ *   timeZone: "America/Los_Angeles",
+ * }
+ *
+ */
+export type DatabaseTemplateRecurrenceSchedule =
+  | DailyRecurrenceSchedule
+  | WeeklyRecurrenceSchedule
+  | MonthlyRecurrenceSchedule
+  | YearlyRecurrenceSchedule
 
 /**
  * Arguments for creating a page.
@@ -207,6 +363,16 @@ export type PageIntent = {
    */
   template?: boolean
   /**
+   * Controls how often this data source template is duplicated.
+   *
+   * If a recurrence already exists, the provided schedule updates it. Otherwise,
+   * a new recurrence is created. An undefined recurrence leaves existing
+   * recurrence state unchanged.
+   *
+   * This field requires `template: true`.
+   */
+  recurrence?: DatabaseTemplateRecurrenceSchedule
+  /**
    * Optional cover image for the page.
    */
   cover?: PageCoverReference
@@ -243,6 +409,32 @@ export type BasePropertySchemaDefinition = {
    * }
    */
   resourceId: ResourceId
+  /**
+   * Icon shown next to the property name in table headers, page property
+   * lists, and property pickers. Defaults to the icon Notion picks for the
+   * property's type when omitted.
+   *
+   * Only `NotionIcon` is accepted — unlike page, database, and teamspace
+   * icons, properties support neither `EmojiIcon` nor `FileReference`. A
+   * property is a key in the collection's schema rather than a record, so a
+   * file upload has nothing to attach to, and an emoji renders as a broken
+   * image.
+   *
+   * @example exact slug (no semantic search, fastest)
+   * { resourceId: "due-prop", name: "Due", type: "date", icon: { type: "notion_icon", description: "calendar" } }
+   *
+   * @example natural-language description (semantic search)
+   * { resourceId: "owner-prop", name: "Owner", type: "person", icon: { type: "notion_icon", description: "who is accountable" } }
+   */
+  icon?: NotionIcon
+  /**
+   * Optional plain-text description shown in the property's hover tooltip and
+   * in its configuration menu. Use it to explain what belongs in the property.
+   *
+   * @example
+   * { resourceId: "est-prop", name: "Estimate", type: "number", description: "Engineer-days, not calendar days." }
+   */
+  description?: string
 }
 
 /**
@@ -311,11 +503,10 @@ export type SelectPropertySchemaDefinition = BasePropertySchemaDefinition & {
  *   ],
  * }
  */
-export type MultiSelectPropertySchemaDefinition =
-  BasePropertySchemaDefinition & {
-    type: "multi_select"
-    options?: Array<SelectOptionDefinition>
-  }
+export type MultiSelectPropertySchemaDefinition = BasePropertySchemaDefinition & {
+  type: "multi_select"
+  options?: Array<SelectOptionDefinition>
+}
 
 /**
  * Available colors for select, multi-select, and status options.
@@ -448,10 +639,9 @@ export type EmailPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "phone-prop", name: "Phone", type: "phone_number" }
  */
-export type PhoneNumberPropertySchemaDefinition =
-  BasePropertySchemaDefinition & {
-    type: "phone_number"
-  }
+export type PhoneNumberPropertySchemaDefinition = BasePropertySchemaDefinition & {
+  type: "phone_number"
+}
 
 /**
  * Relation property schema definition for linking to other databases.
@@ -685,10 +875,9 @@ export type RollupPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "created-prop", name: "Created", type: "created_time" }
  */
-export type CreatedTimePropertySchemaDefinition =
-  BasePropertySchemaDefinition & {
-    type: "created_time"
-  }
+export type CreatedTimePropertySchemaDefinition = BasePropertySchemaDefinition & {
+  type: "created_time"
+}
 
 /**
  * Last edited time property schema definition.
@@ -699,10 +888,9 @@ export type CreatedTimePropertySchemaDefinition =
  * @example
  * { resourceId: "last-modified-prop", name: "Last Modified", type: "last_edited_time" }
  */
-export type LastEditedTimePropertySchemaDefinition =
-  BasePropertySchemaDefinition & {
-    type: "last_edited_time"
-  }
+export type LastEditedTimePropertySchemaDefinition = BasePropertySchemaDefinition & {
+  type: "last_edited_time"
+}
 
 /**
  * Created by property schema definition.
@@ -726,10 +914,9 @@ export type CreatedByPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "editor-prop", name: "Editor", type: "last_edited_by" }
  */
-export type LastEditedByPropertySchemaDefinition =
-  BasePropertySchemaDefinition & {
-    type: "last_edited_by"
-  }
+export type LastEditedByPropertySchemaDefinition = BasePropertySchemaDefinition & {
+  type: "last_edited_by"
+}
 
 /**
  * Auto-increment ID property schema definition.
@@ -743,16 +930,15 @@ export type LastEditedByPropertySchemaDefinition =
  * @example
  * { resourceId: "task-id-prop", name: "Task ID", type: "auto_increment_id", prefix: "TASK" }
  */
-export type AutoIncrementIdPropertySchemaDefinition =
-  BasePropertySchemaDefinition & {
-    type: "auto_increment_id"
-    /**
-     * Optional prefix for the auto-increment ID (e.g., "TASK" produces TASK-1, TASK-2, ...)
-     *
-     * This must be unique within the workspace
-     */
-    prefix?: string
-  }
+export type AutoIncrementIdPropertySchemaDefinition = BasePropertySchemaDefinition & {
+  type: "auto_increment_id"
+  /**
+   * Optional prefix for the auto-increment ID (e.g., "TASK" produces TASK-1, TASK-2, ...)
+   *
+   * This must be unique within the workspace
+   */
+  prefix?: string
+}
 
 /**
  * File property - stores file attachments and media.
@@ -774,11 +960,10 @@ export type PersonPropertySchemaDefinition = BasePropertySchemaDefinition & {
   limit?: 1
 }
 
-export type VerificationPropertySchemaDefinition =
-  BasePropertySchemaDefinition & {
-    type: "verification"
-    verifierPropertyResourceId: ResourceId
-  }
+export type VerificationPropertySchemaDefinition = BasePropertySchemaDefinition & {
+  type: "verification"
+  verifierPropertyResourceId: ResourceId
+}
 
 export type PropertySchemaDefinition =
   | TitlePropertySchemaDefinition
@@ -824,6 +1009,28 @@ export type StandalonePropertyConfig = {
 }
 
 /**
+ * A Content tab in a database page layout. It contains the page's editor and
+ * discussions.
+ */
+export type ContentPageLayoutTab = {
+  type: "content"
+  name?: string
+}
+
+/**
+ * A database view rendered as a tab in the page layout.
+ */
+export type ViewPageLayoutTab = {
+  type: "view"
+  resourceId: ResourceId<"view">
+}
+
+/**
+ * A tab in a database page layout.
+ */
+export type DatabasePageLayoutTab = ContentPageLayoutTab | ViewPageLayoutTab
+
+/**
  * A named database page layout preset for pages in a data source.
  *
  * "simpleWithPropertiesInSidebar" shows the cover, title, pinned properties,
@@ -832,6 +1039,12 @@ export type StandalonePropertyConfig = {
  */
 export type DatabasePageLayout = {
   type: "simpleWithPropertiesInSidebar"
+  /**
+   * Ordered tabs. Omit this field or pass an empty array to remove all tabs.
+   * Otherwise, include exactly one Content tab to place page content among view
+   * tabs; view tabs use the referenced view's name.
+   */
+  tabs?: Array<DatabasePageLayoutTab>
   /**
    * Per-property placement on the page, in display order: pinned properties
    * render as chips in the order listed, and standalone properties render as
@@ -915,8 +1128,9 @@ export type FileReference = {
  * A reference to a page cover image.
  *
  * Uploaded file references (from `notion.file()`) are resolved through the
- * file manifest. URL references are written directly to the page's
- * `format.page_cover`, matching built-in Notion cover URLs.
+ * file manifest and must be an image (png, jpg, gif, svg, or webp). URL
+ * references are written directly to the page's `format.page_cover`, matching
+ * built-in Notion cover URLs.
  * @generateValidator
  */
 export type PageCoverReference = (
@@ -1139,6 +1353,8 @@ export type PropertyViewSortSchema = {
   direction: DatabaseViewSortDirection
 }
 
+export type DatePropertyTypes = "date" | "created_time" | "last_edited_time"
+
 export type BasePropertyFilter = {
   propertyId: string
   type: "property"
@@ -1192,23 +1408,139 @@ export type StatusPropertyFilter = {
   value: Array<string>
 } & BasePropertyFilter
 
-export type DatePropertyFilter = {
-  propertyType: "date" | "created_time" | "last_edited_time"
-  operator:
-    | "date_is"
-    | "date_is_before"
-    | "date_is_after"
-    | "date_is_on_or_before"
-    | "date_is_on_or_after"
-  /** Date value in YYYY-MM-DD format */
-  value: string
-} & BasePropertyFilter
+/**
+ * Date presets resolved relative to today, matching options such as
+ * "Today", "Tomorrow", and "One week ago".
+ */
+export type RelativeDatePreset =
+  | "today"
+  | "tomorrow"
+  | "yesterday"
+  | "one_week_ago"
+  | "one_week_from_now"
+  | "one_month_ago"
+  | "one_month_from_now"
+
+/**
+ * The unit spanned by a relative "is relative to today" date range.
+ */
+export type RelativeDateRangeUnit = "day" | "week" | "month" | "year"
+
+/**
+ * Which date a date property filter compares against. Notion date properties
+ * can hold a range, and `end_date` reads the far end of it.
+ */
+export type DateFilterMode = "start_date" | "end_date"
+
+export type ExactDatePropertyFilterValue = { type: "exact"; value: string }
+
+export type RelativeDatePropertyFilterValue = {
+  type: "relative"
+  value: RelativeDatePreset
+}
+
+export type RelativeToTodayDatePropertyFilterValue = {
+  type: "relative_to_today"
+  value: {
+    direction: "past" | "next" | "this"
+    count?: number
+    unit: RelativeDateRangeUnit
+  }
+}
+
+/**
+ * Value for a date property filter.
+ *
+ * - `exact` matches a calendar date in `YYYY-MM-DD` format.
+ * - `relative` matches a date preset such as today or tomorrow.
+ * - `relative_to_today` matches a range relative to today. `unit` can be
+ *   `day`, `week`, `month`, or `year`. `count` defaults to `1` when omitted
+ *   and is unnecessary for `direction: "this"`.
+ *
+ */
+export type DatePropertyFilterValue =
+  | ExactDatePropertyFilterValue
+  | RelativeDatePropertyFilterValue
+  | RelativeToTodayDatePropertyFilterValue
+
+/**
+ * Date property filter.
+ *
+ * Single-date operators accept `exact` or `relative` values.
+ * `date_is_relative_to` requires a `relative_to_today` value.
+ *
+ * `dateFilterMode` chooses which end of a date range the comparison reads.
+ * It defaults to `"start_date"`. `"end_date"` falls back to the start date for
+ * rows whose date is a single day rather than a range, and has no effect on
+ * `created_time` / `last_edited_time` properties, which are never ranges.
+ *
+ * TODO: Support "date_is_within" (Notion's "Is between" operator) with a { type: "exact_range" } value,
+ * once we have a way to represent exact date ranges.
+ *
+ * @example Exact date
+ * {
+ *   type: "property",
+ *   propertyId: "due",
+ *   propertyType: "date",
+ *   operator: "date_is_on_or_after",
+ *   value: { type: "exact", value: "2025-10-03" }
+ * }
+ *
+ * @example Relative date preset
+ * {
+ *   type: "property",
+ *   propertyId: "due",
+ *   propertyType: "date",
+ *   operator: "date_is",
+ *   value: { type: "relative", value: "today" }
+ * }
+ *
+ * @example Next two months
+ * {
+ *   type: "property",
+ *   propertyId: "due",
+ *   propertyType: "date",
+ *   operator: "date_is_relative_to",
+ *   value: { type: "relative_to_today", value: { direction: "next", count: 2, unit: "month" } }
+ * }
+ *
+ * @example Sprints that end this week
+ * {
+ *   type: "property",
+ *   propertyId: "sprint",
+ *   propertyType: "date",
+ *   operator: "date_is_relative_to",
+ *   value: { type: "relative_to_today", value: { direction: "this", unit: "week" } },
+ *   dateFilterMode: "end_date"
+ * }
+ *
+ */
+export type DatePropertyFilter =
+  | ({
+      propertyType: DatePropertyTypes
+      operator:
+        | "date_is"
+        | "date_is_before"
+        | "date_is_after"
+        | "date_is_on_or_before"
+        | "date_is_on_or_after"
+      value: ExactDatePropertyFilterValue | RelativeDatePropertyFilterValue
+      dateFilterMode?: DateFilterMode
+    } & BasePropertyFilter)
+  | ({
+      propertyType: DatePropertyTypes
+      operator: "date_is_relative_to"
+      value: RelativeToTodayDatePropertyFilterValue
+      dateFilterMode?: DateFilterMode
+    } & BasePropertyFilter)
 
 export type RelationPropertyFilter = {
   propertyType: Extract<PropertyType, "relation">
   operator: "relation_contains" | "relation_does_not_contain"
-  /** Resource ID(s) of related pages created in the same script */
-  value: Array<ResourceId>
+  /** References related pages, or the current page when rendered as a page-layout tab. */
+  value:
+    | { type: "exact"; value: Array<ResourceId<"page">> }
+    | { type: "relative"; value: "this_page" }
 } & BasePropertyFilter
 
 /**
@@ -1264,8 +1596,8 @@ export type AdvancedFilterSchema = {
 /**
  * Base view schema shared by all view types.
  *
- * IMPORTANT: dataSourceResourceId is REQUIRED for all views. It must match the
- * resourceId of a data source created in this script.
+ * `dataSourceResourceId` must reference a data source created by the script or
+ * supplied through existing resources.
  *
  * @example
  * // When creating a database with a data source
@@ -1282,14 +1614,14 @@ export type AdvancedFilterSchema = {
  * })
  *
  * @example
- * // A linked database can reference a data source from another database
+ * // A linked database can reference another script-created or existing data source
  * const linkedDatabase = await notion.database({
  *   resourceId: "linked-database",
  *   parent: { type: "resourceId", resourceId: "project-page" },
  *   views: [{
  *     resourceId: "linked-table-view",
  *     type: "table",
- *     dataSourceResourceId: "my-datasource"  // REQUIRED: created elsewhere in this script
+ *     dataSourceResourceId: "my-datasource"  // Created elsewhere or supplied through an existing collection
  *   }]
  * })
  */
@@ -1297,7 +1629,7 @@ export type BaseViewSchema = {
   resourceId: ResourceId
   name?: string
   type: ViewType
-  /** REQUIRED: Must match a data source's resourceId created in this script. */
+  /** Resource ID of a script-created or existing data source. */
   dataSourceResourceId: ResourceId
   /**
    * Optional resource ID of a template page in this view's data source to use as
@@ -1308,9 +1640,9 @@ export type BaseViewSchema = {
    */
   defaultTemplate?: ResourceId
   /**
-   * Optional: create this view to be used as a linked view referenced by
-   * `<database>` tags in page content markdown. Does not attach the view to the
-   * database block's main view tabs.
+   * Optional: create this view as a linked view referenced by `<database>` tags
+   * in page content markdown or use it as a tab in a database layout. It does
+   * not attach to the database block's main view tabs.
    */
   ephemeral?: boolean
   sorts?: Array<PropertyViewSortSchema>
@@ -1504,6 +1836,58 @@ export type TeamspaceIntent = {
 }
 
 /**
+ * A recurrence schedule supported by custom agent triggers.
+ *
+ * Custom agents support every database-template recurrence frequency, plus
+ * hourly schedules. Weekdays use standard two-letter recurrence codes, while
+ * monthly schedules repeat on either one day of the month or one weekday
+ * occurrence.
+ *
+ * @example Every three hours
+ * {
+ *   frequency: "hour",
+ *   interval: 3,
+ *   start: "2026-08-17T09:00:00",
+ *   timeZone: "America/Los_Angeles",
+ * }
+ *
+ */
+export type CustomAgentRecurrenceSchedule = (
+  | DatabaseTemplateRecurrenceSchedule
+  | HourlyRecurrenceSchedule
+) & {
+  type: "recurrence"
+}
+
+export type CustomAgentTriggerBase = {
+  resourceId: ResourceId
+  /** Whether the trigger is active. Defaults to true. */
+  enabled?: boolean
+}
+
+export type CustomAgentRecurrenceTrigger = CustomAgentTriggerBase &
+  CustomAgentRecurrenceSchedule
+
+/**
+ * Runs when a page is added to the selected data source.
+ *
+ * The custom agent automatically receives read-only access to the database that
+ * contains the selected data source. If more permissive access is already
+ * granted, that access is used.
+ */
+export type CustomAgentPageAddedTrigger = CustomAgentTriggerBase & {
+  type: "page_added"
+  dataSourceResourceId: ResourceId
+}
+
+/**
+ * Defines when a custom agent runs automatically.
+ */
+export type CustomAgentTrigger =
+  | CustomAgentRecurrenceTrigger
+  | CustomAgentPageAddedTrigger
+
+/**
  * Arguments for creating a custom agent.
  *
  * Custom agents are AI agents scoped to a Notion workspace.
@@ -1571,6 +1955,18 @@ export type CustomAgentIntent = {
    * or workspace) throws at finalize time.
    */
   sharedResources?: Array<ResourceId>
+  /**
+   * Triggers that can run this agent automatically.
+   *
+   * Newly created custom agents include Notion's standard @mention trigger by
+   * default. That trigger is not configured through this field and is preserved
+   * when Notion as Code updates the trigger types it manages.
+   *
+   * Each listed custom agent trigger is either created or updated by `resourceId`.
+   * Existing triggers that are not listed are left unchanged. An undefined or
+   * empty array also leaves existing triggers unchanged.
+   */
+  triggers?: Array<CustomAgentTrigger>
 }
 
 /**
@@ -1582,6 +1978,31 @@ export type CustomAgentIntent = {
  */
 export type CustomAgentHandle = {
   resourceId: ResourceId
+}
+
+/**
+ * Arguments for creating a child page through a page, teamspace, or space
+ * handle. The handle supplies the parent automatically. Pages added through a
+ * space handle are private to the user running the script.
+ */
+export type ChildPageArgs = Omit<
+  PageIntent,
+  "parent" | "updateExisting" | "template" | "recurrence"
+>
+
+/**
+ * Arguments for creating a child database through a page, teamspace, or space
+ * handle. The handle supplies the parent automatically. Databases added through
+ * a space handle are private to the user running the script.
+ */
+export type ChildDatabaseArgs<
+  DS extends {
+    resourceId: ResourceId
+    name: string
+    properties: PropertySchemaDefinition[]
+  }[] = [],
+> = Omit<DatabaseIntent, "parent" | "dataSources"> & {
+  dataSources?: DS
 }
 
 /**
@@ -1602,6 +2023,16 @@ export type CustomAgentHandle = {
  */
 export type PageHandle = {
   resourceId: ResourceId
+  /** Add a database to this page */
+  addDatabase<
+    DS extends {
+      resourceId: ResourceId
+      name: string
+      properties: PropertySchemaDefinition[]
+    }[] = [],
+  >(args: ChildDatabaseArgs<DS>): DatabaseHandle<DS>
+  /** Add a page to this page */
+  addPage(args: ChildPageArgs): PageHandle
 }
 
 export type DataSourceHandle<P extends PropertySchemaDefinition[]> = {
@@ -1633,6 +2064,13 @@ export type DataSourceHandle<P extends PropertySchemaDefinition[]> = {
      * Whether this page should be created as a data source template.
      */
     template?: boolean
+    /**
+     * Controls how often this template is duplicated. If a recurrence already
+     * exists, the provided schedule updates it. Otherwise, a new recurrence is
+     * created. An undefined recurrence leaves existing recurrence state unchanged.
+     * Requires `template: true`.
+     */
+    recurrence?: DatabaseTemplateRecurrenceSchedule
     /**
      * Optional cover image referencing a file resource ID from the file manifest.
      * The file must be an image type (png, jpg, gif, svg, webp). URL cover
@@ -1698,50 +2136,25 @@ export type TeamspaceHandle = {
       resourceId: ResourceId
       name: string
       properties: PropertySchemaDefinition[]
-    }[],
-  >(
-    args: Omit<DatabaseIntent, "parent" | "dataSources"> & {
-      dataSources: DS
-    },
-  ): DatabaseHandle<DS>
+    }[] = [],
+  >(args: ChildDatabaseArgs<DS>): DatabaseHandle<DS>
   /** Add a page to this teamspace */
-  addPage(args: {
-    resourceId: ResourceId
-    /**
-     * Icon for the page. Can be an emoji or a notion_icon (resolved by exact slug match or semantic search description).
-     */
-    icon?: InfraAsCodeIcon
-    /**
-     * Page properties including the title.
-     * Use `properties.title` to set the page title.
-     * @example
-     * properties: { title: notion.text("My Page Title") }
-     */
-    properties?: Record<string, PropertyValue | undefined>
-    /**
-     * Optional page content in Notion flavored markdown format.
-     * When provided, the markdown will be parsed into blocks and added as children of the page.
-     *
-     * NOTE: The page title must be set via `properties.title`, NOT from content.
-     * Content markdown is only used to generate child blocks.
-     */
-    content?: string
-    /**
-     * Optional cover image referencing a file resource ID from the file manifest.
-     * The file must be an image type (png, jpg, gif, svg, webp). URL cover
-     * references are also accepted.
-     */
-    cover?: PageCoverReference
-    /**
-     * Whether the page renders full width (no side margins).
-     */
-    fullWidth?: boolean
-  }): PageHandle
+  addPage(args: ChildPageArgs): PageHandle
 }
 
 export type SpaceHandle = {
   resourceId: ResourceId
   addTeamspace(args: Omit<TeamspaceIntent, "parent">): TeamspaceHandle
+  /** Add a private database to this workspace */
+  addDatabase<
+    DS extends {
+      resourceId: ResourceId
+      name: string
+      properties: PropertySchemaDefinition[]
+    }[] = [],
+  >(args: ChildDatabaseArgs<DS>): DatabaseHandle<DS>
+  /** Add a private page to this workspace */
+  addPage(args: ChildPageArgs): PageHandle
 }
 
 /**
@@ -1807,9 +2220,7 @@ export type VerificationInput =
   | { state: "unverified" }
 
 /** @generateValidator src/server/helpers/infraAsCode/propertyValueHelpers.validators.ts @infraAsCodePublic */
-export type VerificationPropertyValue = VerificationInput & {
-  type: "verification"
-}
+export type VerificationPropertyValue = VerificationInput & { type: "verification" }
 
 /**
  * Property types supported by infra as code scripts.
@@ -1864,7 +2275,8 @@ export declare const notion: {
   teamspace: (args: TeamspaceIntent) => TeamspaceHandle
 
   /**
-   * Creates a new Notion workspace and returns a SpaceHandle for adding teamspaces.
+   * Creates a new Notion workspace and returns a SpaceHandle for adding teamspaces
+   * and private top-level pages or databases.
    */
   space: (args: SpaceIntent) => SpaceHandle
 
@@ -1920,7 +2332,7 @@ Block types:
 Markdown blocks use a {color="Color"} attribute list to set a block color.
 Text:
 Rich text {color="Color"}
-	Children
+  Children
 Headings:
 # Rich text {color="Color"}
 ## Rich text {color="Color"}
@@ -1929,11 +2341,11 @@ Headings:
 (Headings 5 and 6 are not supported in Notion and will be converted to heading 4.)
 Bulleted list:
 - Rich text {color="Color"}
-	Children
+  Children
 Numbered list:
 1. Rich text {color="Color"}
-	Children
-	
+  Children
+
 Bulleted and numbered list items should contain inline rich text -- otherwise they will render as empty list items, which look awkward in the Notion UI. (The inline text should be rich text -- any other block type will not be rendered inline, but as a child to an empty list item.)
 Empty line:
 <empty-block/>
@@ -1970,7 +2382,7 @@ Inline line breaks within a block (this is mostly useful in multi-line quote blo
 <br>
 Quote:
 > Rich text {color="Color"}
-	Children
+  Children
 Multi-line quote:
 > Line 1<br>Line 2<br>Line 3 {color="Color"}
 Unlike in standard markdown, never use ordinary newlines anywhere mid-quote -- this will render as multiple separate quote blocks, not a single multi-line quote:
@@ -1980,25 +2392,25 @@ Unlike in standard markdown, never use ordinary newlines anywhere mid-quote -- t
 Use of a single > on a line without any other text should be avoided -- this will render as an empty blockquote, which is not visually appealing.
 To-do:
 - [ ] Rich text {color="Color"}
-	Children
+  Children
 - [x] Rich text {color="Color"}
-	Children
+  Children
 Divider:
 ---
 Table:
 <table fit-page-width?="true|false" header-row?="true|false" header-column?="true|false">
-	<colgroup>
-		<col color?="Color">
-		<col color?="Color">
-	</colgroup>
-	<tr color?="Color">
-		<td>Data cell</td>
-		<td color?="Color">Data cell</td>
-	</tr>
-	<tr>
-		<td>Data cell</td>
-		<td>Data cell</td>
-	</tr>
+  <colgroup>
+    <col color?="Color">
+    <col color?="Color">
+  </colgroup>
+  <tr color?="Color">
+    <td>Data cell</td>
+    <td color?="Color">Data cell</td>
+  </tr>
+  <tr>
+    <td>Data cell</td>
+    <td>Data cell</td>
+  </tr>
 </table>
 Note: All table attributes are optional. If omitted, they default to "false".
 Table structure:
@@ -2026,7 +2438,7 @@ Equation:
 $$
 Equation
 $$
-		Code:
+    Code:
 \`\`\`language
 Code
 \`\`\`
@@ -2067,37 +2479,48 @@ Children
 Toggle headings use the {toggle="true"} attribute on a heading:
 Toggle heading 1:
 # Rich text {toggle="true" color?="Color"}
-	Children
+  Children
 Toggle heading 2:
 ## Rich text {toggle="true" color?="Color"}
-	Children
+  Children
 Toggle heading 3:
 ### Rich text {toggle="true" color?="Color"}
-	Children
+  Children
 For toggles and toggle headings, the children must be indented in order for them to be toggleable. If you do not indent the children, they will not be contained within the toggle or toggle heading.
 Callout:
 <callout icon?="emoji or Notion Icon" color?="Color">
-	Rich text
-	Children
+  Rich text
+  Children
 </callout>
 Callouts can contain multiple blocks and nested children, not just inline rich text. Each child block should be indented.
 For any formatting inside of callout blocks, use Notion-flavored Markdown, not HTML. For instance, bold text in a callout should be wrapped in **, not <strong>.
 Columns:
 <columns>
-	<column ratio?="50">
-		Children
-	</column>
-	<column ratio?="50">
-		Children
-	</column>
+  <column ratio?="50">
+    Children
+  </column>
+  <column ratio?="50">
+    Children
+  </column>
 </columns>
 - ratio: Optional column width as a percentage of the full width, e.g. 50 for half. Omit it to use the default even split when creating columns. When updating existing columns, set every ratio explicitly.
+Tabs:
+<tabs>
+  <tab icon?="emoji or Notion Icon">
+    Tab title
+    Children
+  </tab>
+</tabs>
+Each <tab> must have its title as the first indented line. The optional icon attribute accepts an emoji or Notion Icon, such as icon="icons/document_gray".
 Custom emoji:
 :emoji_name:
 Page:
 <page url="{{URL}}" color?="Color">Title</page>
 IMPORTANT: A <page> tag represents a subpage (child page) on the current page.
 WARNING: Using <page> with an existing page URL will MOVE that page into this page as a subpage. Removing that <page> tag from the content will REMOVE that child page from the current page. If moving is not intended use the <mention-page> block instead.
+Folder:
+<folder url="{{URL}}">Title</folder>
+A <folder> tag represents an existing folder. Use the URL with loadFolder (or fetch in MCP) to read the folder's immediate children, then follow nested <folder> URLs to continue traversing. Preserve existing folder tags unless intentionally moving or deleting the folder. Folders cannot be created from Markdown.
 Database:
 <database url?="{{URL}}" inline?="true|false" icon?="Emoji" color?="Color" data-source-url?="{{URL}}" wiki?="true|false">Title</database>
 Provide either url or data-source-url attribute:
@@ -2115,6 +2538,7 @@ Embed (renders an HTML attachment file inline in a sandboxed iframe):
 "HTML", "HTML block", "HTML artifact", and "HTML embed" all mean an HTML attachment rendered with <embed>. Never create one as a code block or file block.
 Always use <embed> for HTML attachment files
 For files created by the MCP create-attachment tool, use its returned file-upload:// source as the src value. The source is resolved and attached when create-pages or update-page saves the block. Keep the returned file upload ID if you need to retrieve the text later with download-attachment.
+For files uploaded through the MCP create-file-upload flow, use the upload response's suggested_markdown directly in create-pages or update-page content. To attach the upload to a comment, include suggested_markdown on a separate line in create-comment markdown; comments support up to three file attachments.
 Image:
 ![Caption](URL) {color?="Color"}
 PDF:
@@ -2128,7 +2552,7 @@ Synced block:
 The original source for a synced block.
 When creating a new synced block, do not provide the URL. After inserting the synced block into a page, the URL will be provided.
 <synced_block url?="{{URL}}">
-	Children
+  Children
 </synced_block>
 Note: When creating new synced blocks, omit the url attribute - it will be auto-generated. When reading existing synced blocks, the url attribute will be present.
 Synced block reference:
@@ -2137,20 +2561,20 @@ The synced block must already exist and url must be provided.
 You can directly update the children of the synced block reference and it will update both the original synced block and the synced block reference.
 If content is unavailable due to permissions, a non-editable notice may be included via the optional notice attribute.
 <synced_block_reference url="{{URL}}" notice="{{OPTIONAL_NOTICE}}">
-	Children
+  Children
 </synced_block_reference>
 Meeting notes:
 <meeting-notes>
-	Rich text (meeting title)
-	<summary>
-		AI-generated summary of the notes + transcript
-	</summary>
-	<notes>
-		User notes
-	</notes>
-	<transcript>
-		Transcript of the audio (cannot be edited)
-	</transcript>
+  Rich text (meeting title)
+  <summary>
+    AI-generated summary of the notes + transcript
+  </summary>
+  <notes>
+    User notes
+  </notes>
+  <transcript>
+    Transcript of the audio (cannot be edited)
+  </transcript>
 </meeting-notes>
 - The <transcript> tag contains a raw transcript and cannot be edited by AI, but it can be edited by a user.
 - When creating new meeting notes blocks, you must omit the <summary> and <transcript> tags.
