@@ -51,9 +51,7 @@ export type ExtractByName<
   N extends string,
 > = Extract<P[number], { name: N }>
 
-export type ResourceId<T extends string = string> = string extends T
-  ? string
-  : string & { __resourceIdType?: T }
+export type ResourceId = string
 
 /**
  * Emoji icon - uses a standard emoji character.
@@ -128,7 +126,6 @@ export type Parent = {
  * Weekdays selected by a weekly recurrence schedule, using two-letter codes
  * from `MO` through `SU`. Set each weekday that should run to `true`.
  * For example, `{ TU: true, FR: true }` selects Tuesday and Friday.
- * @generateValidator @strict
  */
 export type RecurrenceWeekdays = {
   MO?: true | undefined
@@ -503,10 +500,11 @@ export type SelectPropertySchemaDefinition = BasePropertySchemaDefinition & {
  *   ],
  * }
  */
-export type MultiSelectPropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "multi_select"
-  options?: Array<SelectOptionDefinition>
-}
+export type MultiSelectPropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "multi_select"
+    options?: Array<SelectOptionDefinition>
+  }
 
 /**
  * Available colors for select, multi-select, and status options.
@@ -639,9 +637,10 @@ export type EmailPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "phone-prop", name: "Phone", type: "phone_number" }
  */
-export type PhoneNumberPropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "phone_number"
-}
+export type PhoneNumberPropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "phone_number"
+  }
 
 /**
  * Relation property schema definition for linking to other databases.
@@ -875,9 +874,10 @@ export type RollupPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "created-prop", name: "Created", type: "created_time" }
  */
-export type CreatedTimePropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "created_time"
-}
+export type CreatedTimePropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "created_time"
+  }
 
 /**
  * Last edited time property schema definition.
@@ -888,9 +888,10 @@ export type CreatedTimePropertySchemaDefinition = BasePropertySchemaDefinition &
  * @example
  * { resourceId: "last-modified-prop", name: "Last Modified", type: "last_edited_time" }
  */
-export type LastEditedTimePropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "last_edited_time"
-}
+export type LastEditedTimePropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "last_edited_time"
+  }
 
 /**
  * Created by property schema definition.
@@ -914,9 +915,10 @@ export type CreatedByPropertySchemaDefinition = BasePropertySchemaDefinition & {
  * @example
  * { resourceId: "editor-prop", name: "Editor", type: "last_edited_by" }
  */
-export type LastEditedByPropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "last_edited_by"
-}
+export type LastEditedByPropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "last_edited_by"
+  }
 
 /**
  * Auto-increment ID property schema definition.
@@ -930,15 +932,16 @@ export type LastEditedByPropertySchemaDefinition = BasePropertySchemaDefinition 
  * @example
  * { resourceId: "task-id-prop", name: "Task ID", type: "auto_increment_id", prefix: "TASK" }
  */
-export type AutoIncrementIdPropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "auto_increment_id"
-  /**
-   * Optional prefix for the auto-increment ID (e.g., "TASK" produces TASK-1, TASK-2, ...)
-   *
-   * This must be unique within the workspace
-   */
-  prefix?: string
-}
+export type AutoIncrementIdPropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "auto_increment_id"
+    /**
+     * Optional prefix for the auto-increment ID (e.g., "TASK" produces TASK-1, TASK-2, ...)
+     *
+     * This must be unique within the workspace
+     */
+    prefix?: string
+  }
 
 /**
  * File property - stores file attachments and media.
@@ -960,10 +963,11 @@ export type PersonPropertySchemaDefinition = BasePropertySchemaDefinition & {
   limit?: 1
 }
 
-export type VerificationPropertySchemaDefinition = BasePropertySchemaDefinition & {
-  type: "verification"
-  verifierPropertyResourceId: ResourceId
-}
+export type VerificationPropertySchemaDefinition =
+  BasePropertySchemaDefinition & {
+    type: "verification"
+    verifierPropertyResourceId: ResourceId
+  }
 
 export type PropertySchemaDefinition =
   | TitlePropertySchemaDefinition
@@ -1022,7 +1026,7 @@ export type ContentPageLayoutTab = {
  */
 export type ViewPageLayoutTab = {
   type: "view"
-  resourceId: ResourceId<"view">
+  resourceId: ResourceId
 }
 
 /**
@@ -1117,7 +1121,6 @@ export type TextValue = SimpleTextValue
 /**
  * A reference to an uploaded file, returned by `notion.file()`.
  * Used in database file property values.
- * @generateValidator
  */
 export type FileReference = {
   type: "file"
@@ -1128,10 +1131,8 @@ export type FileReference = {
  * A reference to a page cover image.
  *
  * Uploaded file references (from `notion.file()`) are resolved through the
- * file manifest and must be an image (png, jpg, gif, svg, or webp). URL
- * references are written directly to the page's `format.page_cover`, matching
- * built-in Notion cover URLs.
- * @generateValidator
+ * file manifest. URL references are written directly to the page's
+ * `format.page_cover`, matching built-in Notion cover URLs.
  */
 export type PageCoverReference = (
   | FileReference
@@ -1474,8 +1475,6 @@ export type DatePropertyFilterValue =
  * rows whose date is a single day rather than a range, and has no effect on
  * `created_time` / `last_edited_time` properties, which are never ranges.
  *
- * TODO: Support "date_is_within" (Notion's "Is between" operator) with a { type: "exact_range" } value,
- * once we have a way to represent exact date ranges.
  *
  * @example Exact date
  * {
@@ -1539,7 +1538,7 @@ export type RelationPropertyFilter = {
   operator: "relation_contains" | "relation_does_not_contain"
   /** References related pages, or the current page when rendered as a page-layout tab. */
   value:
-    | { type: "exact"; value: Array<ResourceId<"page">> }
+    | { type: "exact"; value: Array<ResourceId> }
     | { type: "relative"; value: "this_page" }
 } & BasePropertyFilter
 
@@ -1551,7 +1550,6 @@ export type RelationPropertyFilter = {
 export type PersonPropertyFilter = {
   propertyType: "created_by" | "last_edited_by" | "person"
   operator: "person_contains" | "person_does_not_contain"
-  // TODO: Support more Person property types in the future
   value: [{ type: "relative"; value: "me" }]
 } & BasePropertyFilter
 
@@ -1585,7 +1583,6 @@ export type PropertyFilterSchema =
 export type FilterSchema = Array<PropertyFilterSchema | AdvancedFilterSchema>
 
 /**
- * @generateValidator
  */
 export type AdvancedFilterSchema = {
   type: "advanced"
@@ -1937,10 +1934,6 @@ export type CustomAgentIntent = {
    *
    * When omitted the agent inherits the workspace default model.
    *
-   * TODO: Externalize the model names. These are internal codename
-   * slugs that rotate with model releases; we need a stable external
-   * naming scheme before this becomes a real public surface.
-   * [ref:custom_agent_model_externalize]
    */
   model?: "ambrosia-tart-high" | "opal-quince-medium" | "almond-croissant-low"
   /**
@@ -1981,9 +1974,8 @@ export type CustomAgentHandle = {
 }
 
 /**
- * Arguments for creating a child page through a page, teamspace, or space
- * handle. The handle supplies the parent automatically. Pages added through a
- * space handle are private to the user running the script.
+ * Arguments for creating a child page through a page or teamspace handle. The
+ * handle supplies the parent automatically.
  */
 export type ChildPageArgs = Omit<
   PageIntent,
@@ -1991,9 +1983,8 @@ export type ChildPageArgs = Omit<
 >
 
 /**
- * Arguments for creating a child database through a page, teamspace, or space
- * handle. The handle supplies the parent automatically. Databases added through
- * a space handle are private to the user running the script.
+ * Arguments for creating a child database through a page or teamspace handle.
+ * The handle supplies the parent automatically.
  */
 export type ChildDatabaseArgs<
   DS extends {
@@ -2145,16 +2136,6 @@ export type TeamspaceHandle = {
 export type SpaceHandle = {
   resourceId: ResourceId
   addTeamspace(args: Omit<TeamspaceIntent, "parent">): TeamspaceHandle
-  /** Add a private database to this workspace */
-  addDatabase<
-    DS extends {
-      resourceId: ResourceId
-      name: string
-      properties: PropertySchemaDefinition[]
-    }[] = [],
-  >(args: ChildDatabaseArgs<DS>): DatabaseHandle<DS>
-  /** Add a private page to this workspace */
-  addPage(args: ChildPageArgs): PageHandle
 }
 
 /**
@@ -2192,7 +2173,6 @@ export type FileAttachmentIntent = {
  * Discriminated union of all intent types for sandbox output.
  * Each intent includes a `type` discriminator and the corresponding args.
  *
- * @generateValidator
  */
 export type InfraAsCodeIntent =
   | ({ type: "space" } & SpaceIntent)
@@ -2219,8 +2199,9 @@ export type VerificationInput =
     }
   | { state: "unverified" }
 
-/** @generateValidator src/server/helpers/infraAsCode/propertyValueHelpers.validators.ts @infraAsCodePublic */
-export type VerificationPropertyValue = VerificationInput & { type: "verification" }
+export type VerificationPropertyValue = VerificationInput & {
+  type: "verification"
+}
 
 /**
  * Property types supported by infra as code scripts.
@@ -2275,8 +2256,8 @@ export declare const notion: {
   teamspace: (args: TeamspaceIntent) => TeamspaceHandle
 
   /**
-   * Creates a new Notion workspace and returns a SpaceHandle for adding teamspaces
-   * and private top-level pages or databases.
+   * Modifies or references the existing Notion workspace and returns a SpaceHandle
+   * for adding teamspaces.
    */
   space: (args: SpaceIntent) => SpaceHandle
 
@@ -2332,7 +2313,7 @@ Block types:
 Markdown blocks use a {color="Color"} attribute list to set a block color.
 Text:
 Rich text {color="Color"}
-  Children
+	Children
 Headings:
 # Rich text {color="Color"}
 ## Rich text {color="Color"}
@@ -2341,10 +2322,10 @@ Headings:
 (Headings 5 and 6 are not supported in Notion and will be converted to heading 4.)
 Bulleted list:
 - Rich text {color="Color"}
-  Children
+	Children
 Numbered list:
 1. Rich text {color="Color"}
-  Children
+	Children
 
 Bulleted and numbered list items should contain inline rich text -- otherwise they will render as empty list items, which look awkward in the Notion UI. (The inline text should be rich text -- any other block type will not be rendered inline, but as a child to an empty list item.)
 Empty line:
@@ -2382,7 +2363,7 @@ Inline line breaks within a block (this is mostly useful in multi-line quote blo
 <br>
 Quote:
 > Rich text {color="Color"}
-  Children
+	Children
 Multi-line quote:
 > Line 1<br>Line 2<br>Line 3 {color="Color"}
 Unlike in standard markdown, never use ordinary newlines anywhere mid-quote -- this will render as multiple separate quote blocks, not a single multi-line quote:
@@ -2392,25 +2373,25 @@ Unlike in standard markdown, never use ordinary newlines anywhere mid-quote -- t
 Use of a single > on a line without any other text should be avoided -- this will render as an empty blockquote, which is not visually appealing.
 To-do:
 - [ ] Rich text {color="Color"}
-  Children
+	Children
 - [x] Rich text {color="Color"}
-  Children
+	Children
 Divider:
 ---
 Table:
 <table fit-page-width?="true|false" header-row?="true|false" header-column?="true|false">
-  <colgroup>
-    <col color?="Color">
-    <col color?="Color">
-  </colgroup>
-  <tr color?="Color">
-    <td>Data cell</td>
-    <td color?="Color">Data cell</td>
-  </tr>
-  <tr>
-    <td>Data cell</td>
-    <td>Data cell</td>
-  </tr>
+	<colgroup>
+		<col color?="Color">
+		<col color?="Color">
+	</colgroup>
+	<tr color?="Color">
+		<td>Data cell</td>
+		<td color?="Color">Data cell</td>
+	</tr>
+	<tr>
+		<td>Data cell</td>
+		<td>Data cell</td>
+	</tr>
 </table>
 Note: All table attributes are optional. If omitted, they default to "false".
 Table structure:
@@ -2438,7 +2419,7 @@ Equation:
 $$
 Equation
 $$
-    Code:
+		Code:
 \`\`\`language
 Code
 \`\`\`
@@ -2479,29 +2460,29 @@ Children
 Toggle headings use the {toggle="true"} attribute on a heading:
 Toggle heading 1:
 # Rich text {toggle="true" color?="Color"}
-  Children
+	Children
 Toggle heading 2:
 ## Rich text {toggle="true" color?="Color"}
-  Children
+	Children
 Toggle heading 3:
 ### Rich text {toggle="true" color?="Color"}
-  Children
+	Children
 For toggles and toggle headings, the children must be indented in order for them to be toggleable. If you do not indent the children, they will not be contained within the toggle or toggle heading.
 Callout:
 <callout icon?="emoji or Notion Icon" color?="Color">
-  Rich text
-  Children
+	Rich text
+	Children
 </callout>
 Callouts can contain multiple blocks and nested children, not just inline rich text. Each child block should be indented.
 For any formatting inside of callout blocks, use Notion-flavored Markdown, not HTML. For instance, bold text in a callout should be wrapped in **, not <strong>.
 Columns:
 <columns>
-  <column ratio?="50">
-    Children
-  </column>
-  <column ratio?="50">
-    Children
-  </column>
+	<column ratio?="50">
+		Children
+	</column>
+	<column ratio?="50">
+		Children
+	</column>
 </columns>
 - ratio: Optional column width as a percentage of the full width, e.g. 50 for half. Omit it to use the default even split when creating columns. When updating existing columns, set every ratio explicitly.
 Tabs:
@@ -2518,9 +2499,6 @@ Page:
 <page url="{{URL}}" color?="Color">Title</page>
 IMPORTANT: A <page> tag represents a subpage (child page) on the current page.
 WARNING: Using <page> with an existing page URL will MOVE that page into this page as a subpage. Removing that <page> tag from the content will REMOVE that child page from the current page. If moving is not intended use the <mention-page> block instead.
-Folder:
-<folder url="{{URL}}">Title</folder>
-A <folder> tag represents an existing folder. Use the URL with loadFolder (or fetch in MCP) to read the folder's immediate children, then follow nested <folder> URLs to continue traversing. Preserve existing folder tags unless intentionally moving or deleting the folder. Folders cannot be created from Markdown.
 Database:
 <database url?="{{URL}}" inline?="true|false" icon?="Emoji" color?="Color" data-source-url?="{{URL}}" wiki?="true|false">Title</database>
 Provide either url or data-source-url attribute:
@@ -2538,7 +2516,6 @@ Embed (renders an HTML attachment file inline in a sandboxed iframe):
 "HTML", "HTML block", "HTML artifact", and "HTML embed" all mean an HTML attachment rendered with <embed>. Never create one as a code block or file block.
 Always use <embed> for HTML attachment files
 For files created by the MCP create-attachment tool, use its returned file-upload:// source as the src value. The source is resolved and attached when create-pages or update-page saves the block. Keep the returned file upload ID if you need to retrieve the text later with download-attachment.
-For files uploaded through the MCP create-file-upload flow, use the upload response's suggested_markdown directly in create-pages or update-page content. To attach the upload to a comment, include suggested_markdown on a separate line in create-comment markdown; comments support up to three file attachments.
 Image:
 ![Caption](URL) {color?="Color"}
 PDF:
@@ -2552,7 +2529,7 @@ Synced block:
 The original source for a synced block.
 When creating a new synced block, do not provide the URL. After inserting the synced block into a page, the URL will be provided.
 <synced_block url?="{{URL}}">
-  Children
+	Children
 </synced_block>
 Note: When creating new synced blocks, omit the url attribute - it will be auto-generated. When reading existing synced blocks, the url attribute will be present.
 Synced block reference:
@@ -2561,20 +2538,20 @@ The synced block must already exist and url must be provided.
 You can directly update the children of the synced block reference and it will update both the original synced block and the synced block reference.
 If content is unavailable due to permissions, a non-editable notice may be included via the optional notice attribute.
 <synced_block_reference url="{{URL}}" notice="{{OPTIONAL_NOTICE}}">
-  Children
+	Children
 </synced_block_reference>
 Meeting notes:
 <meeting-notes>
-  Rich text (meeting title)
-  <summary>
-    AI-generated summary of the notes + transcript
-  </summary>
-  <notes>
-    User notes
-  </notes>
-  <transcript>
-    Transcript of the audio (cannot be edited)
-  </transcript>
+	Rich text (meeting title)
+	<summary>
+		AI-generated summary of the notes + transcript
+	</summary>
+	<notes>
+		User notes
+	</notes>
+	<transcript>
+		Transcript of the audio (cannot be edited)
+	</transcript>
 </meeting-notes>
 - The <transcript> tag contains a raw transcript and cannot be edited by AI, but it can be edited by a user.
 - When creating new meeting notes blocks, you must omit the <summary> and <transcript> tags.

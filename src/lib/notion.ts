@@ -8,12 +8,15 @@
 // recorded intents.
 
 import type {
+  ChildDatabaseArgs,
+  ChildPageArgs,
   DatabaseHandle,
   DatabaseIntent,
   DataSourceHandle,
   InfraAsCodeIntent,
   notion as notionDefinition,
   PropertySchemaDefinition,
+  ResourceId,
 } from "./types"
 
 const intents: InfraAsCodeIntent[] = []
@@ -30,16 +33,6 @@ const notion: typeof notionDefinition = {
       addTeamspace: (tsArgs) =>
         notion.teamspace({
           ...tsArgs,
-          parent: { type: "resourceId", resourceId: args.resourceId },
-        }),
-      addDatabase: (dbArgs) =>
-        notion.database({
-          ...dbArgs,
-          parent: { type: "resourceId", resourceId: args.resourceId },
-        }),
-      addPage: (pageArgs) =>
-        notion.page({
-          ...pageArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },
         }),
     }
@@ -119,12 +112,20 @@ const notion: typeof notionDefinition = {
     recordIntent({ type: "page", ...args })
     return {
       resourceId: args.resourceId,
-      addPage: (pageArgs) =>
+      addPage: (pageArgs: ChildPageArgs) =>
         notion.page({
           ...pageArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },
         }),
-      addDatabase: (dbArgs) =>
+      addDatabase: <
+        DS extends {
+          resourceId: ResourceId
+          name: string
+          properties: PropertySchemaDefinition[]
+        }[] = [],
+      >(
+        dbArgs: ChildDatabaseArgs<DS>,
+      ): DatabaseHandle<DS> =>
         notion.database({
           ...dbArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },
