@@ -2325,8 +2325,6 @@ Bulleted list:
 	Children
 Numbered list:
 1. Rich text {color="Color"}
-	Children
-
 Bulleted and numbered list items should contain inline rich text -- otherwise they will render as empty list items, which look awkward in the Notion UI. (The inline text should be rich text -- any other block type will not be rendered inline, but as a child to an empty list item.)
 Empty line:
 <empty-block/>

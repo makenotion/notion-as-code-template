@@ -8,7 +8,6 @@
 // recorded intents.
 
 import type {
-  ChildDatabaseArgs,
   ChildPageArgs,
   DatabaseHandle,
   DatabaseIntent,
@@ -16,7 +15,6 @@ import type {
   InfraAsCodeIntent,
   notion as notionDefinition,
   PropertySchemaDefinition,
-  ResourceId,
 } from "./types"
 
 const intents: InfraAsCodeIntent[] = []
@@ -117,15 +115,7 @@ const notion: typeof notionDefinition = {
           ...pageArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },
         }),
-      addDatabase: <
-        DS extends {
-          resourceId: ResourceId
-          name: string
-          properties: PropertySchemaDefinition[]
-        }[] = [],
-      >(
-        dbArgs: ChildDatabaseArgs<DS>,
-      ): DatabaseHandle<DS> =>
+      addDatabase: (dbArgs) =>
         notion.database({
           ...dbArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },
