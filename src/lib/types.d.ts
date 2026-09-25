@@ -45,12 +45,6 @@ export type SelectColor = (typeof selectColors)[number]
  */
 export type MentionToken = unknown
 
-// Internal helper generic used by PropertiesInputForSchema
-export type ExtractByName<
-  P extends PropertySchemaDefinition[],
-  N extends string,
-> = Extract<P[number], { name: N }>
-
 export type ResourceId = string
 
 /**
@@ -100,7 +94,7 @@ export type NotionIcon = {
 }
 
 /**
- * Icon type for infra as code resources.
+ * Icon type for Notion as Code resources.
  * Can be either an emoji, a Notion custom icon (resolved by exact slug match
  * or semantic search description — see `NotionIcon`), or a file reference.
  *
@@ -115,7 +109,7 @@ export type NotionIcon = {
  * @example Notion custom icon by description (semantic search)
  * icon: { type: "notion_icon", description: "project management" }
  */
-export type InfraAsCodeIcon = EmojiIcon | NotionIcon | FileReference
+export type NotionAsCodeIcon = EmojiIcon | NotionIcon | FileReference
 
 export type Parent = {
   type: "resourceId"
@@ -283,7 +277,7 @@ export type DatabaseTemplateRecurrenceSchedule =
  * For database pages, use the database's title property name.
  *
  * RESTRICTION: Pages can only be parented to resources created within the same
- * Infra as Code script. Parenting to existing records outside the script is not supported
+ * Notion as Code script. Parenting to existing records outside the script is not supported
  * for permission safety reasons.
  */
 export type PageIntent = {
@@ -312,7 +306,7 @@ export type PageIntent = {
   /**
    * Icon for the page. Can be an emoji or a notion_icon (resolved by exact slug match or semantic search description).
    */
-  icon?: InfraAsCodeIcon
+  icon?: NotionAsCodeIcon
   /**
    * Optional page content in Notion flavored markdown format.
    * When provided, the markdown will be parsed into blocks and added as children of the page.
@@ -326,8 +320,8 @@ export type PageIntent = {
    * then reference it in this content with a
    * `<page url="{{that-resource-id}}"></page>` tag. The tag controls only
    * the placement; the child page's `parent` is the source of truth for
-   * containment. The referenced page must be created in the same script and may
-   * be referenced at most once per content body.
+   * containment. Every page parented to this page must be created in the same
+   * script and referenced exactly once in this content.
    *
    * The `<page url="{{...}}">` tag may appear anywhere in the content — at the
    * top level, or nested inside a column, callout, toggle, or other container
@@ -337,7 +331,8 @@ export type PageIntent = {
    * INLINE DATABASES: Position an in-script child database with
    * `<database url="{{that-resource-id}}"></database>`. Set its `parent` to
    * this page's resourceId. Add `inline="true"` to render it inline; omit
-   * `inline` to render it as a full page.
+   * `inline` to render it as a full page. Every database parented to this page
+   * must be referenced exactly once in this content.
    *
    * Use `url` for a real child database (full-page or inline) and
    * `data-source-url` for a linked database view. Never combine them.
@@ -368,7 +363,7 @@ export type PageIntent = {
    *
    * This field requires `template: true`.
    */
-  recurrence?: DatabaseTemplateRecurrenceSchedule
+  recurrence?: DatabaseRecurrenceSchedule
   /**
    * Optional cover image for the page.
    */
@@ -994,25 +989,6 @@ export type PropertySchemaDefinition =
   | VerificationPropertySchemaDefinition
 
 /**
- * Pins the property in the row of compact chips directly below the page
- * title. At most 15 properties can be pinned.
- */
-export type PinnedPropertyConfig = {
-  property: ResourceId
-  position: "pinned"
-}
-
-/**
- * Renders the property as its own full-width section between the page title
- * and the page content. Use for properties that deserve prominent placement,
- * such as an AI summary or meeting attendees.
- */
-export type StandalonePropertyConfig = {
-  property: ResourceId
-  position: "standalone"
-}
-
-/**
  * A Content tab in a database page layout. It contains the page's editor and
  * discussions.
  */
@@ -1023,6 +999,7 @@ export type ContentPageLayoutTab = {
 
 /**
  * A database view rendered as a tab in the page layout.
+ * Uses the referenced view's name and icon. Configure `icon` on the view itself.
  */
 export type ViewPageLayoutTab = {
   type: "view"
@@ -1035,27 +1012,24 @@ export type ViewPageLayoutTab = {
 export type DatabasePageLayoutTab = ContentPageLayoutTab | ViewPageLayoutTab
 
 /**
- * A named database page layout preset for pages in a data source.
- *
- * "simpleWithPropertiesInSidebar" shows the cover, title, pinned properties,
- * standalone property sections, and page content, with the remaining
- * properties grouped in the page sidebar.
+ * Ordered page layout areas. Exactly one properties module must appear across
+ * main and sidebar. Cover, title, and editor modules are managed automatically.
  */
 export type DatabasePageLayout = {
-  type: "simpleWithPropertiesInSidebar"
+  /** Ordered modules on the page, or inside its Content tab when using tabs. */
+  main: Array<PageLayoutMainModule>
+  /** Ordered sidebar modules. Omitted means no sidebar modules. */
+  sidebar?: Array<PageLayoutSidebarModule>
+  /** Ordered property chips below the title. At most 15; omitted means none. */
+  pinnedProperties?: Array<ResourceId>
+  /** Show discussions above or below the editor, or hide them. Defaults to top. */
+  discussions?: "top" | "bottom" | "hidden"
   /**
    * Ordered tabs. Omit this field or pass an empty array to remove all tabs.
    * Otherwise, include exactly one Content tab to place page content among view
    * tabs; view tabs use the referenced view's name.
    */
   tabs?: Array<DatabasePageLayoutTab>
-  /**
-   * Per-property placement on the page, in display order: pinned properties
-   * render as chips in the order listed, and standalone properties render as
-   * sections in the order listed. A property can appear at most once.
-   * Properties not listed are automatically grouped in the page sidebar.
-   */
-  properties?: Array<PinnedPropertyConfig | StandalonePropertyConfig>
   /**
    * Whether pages use the full width of the window. Defaults to false.
    */
@@ -1075,10 +1049,12 @@ export type DatabasePageLayout = {
 export type DataSourceSchema = {
   resourceId: ResourceId
   name: string
+  /** Descriptive metadata; not applied to the provisioned data source. */
+  description?: string
   /**
    * Icon for the data source. Can be an emoji or a notion_icon (looked up via semantic search).
    */
-  icon?: InfraAsCodeIcon
+  icon?: NotionAsCodeIcon
   /**
    * Optional resource ID of a template page in this data source to use as the
    * data source default template.
@@ -1457,24 +1433,26 @@ export type RelativeToTodayDatePropertyFilterValue = {
  * - `relative_to_today` matches a range relative to today. `unit` can be
  *   `day`, `week`, `month`, or `year`. `count` defaults to `1` when omitted
  *   and is unnecessary for `direction: "this"`.
+ * - `exact_range` matches a fixed calendar range, optionally open at one end.
  *
  */
 export type DatePropertyFilterValue =
   | ExactDatePropertyFilterValue
   | RelativeDatePropertyFilterValue
   | RelativeToTodayDatePropertyFilterValue
+  | ExactRangeDatePropertyFilterValue
 
 /**
  * Date property filter.
  *
  * Single-date operators accept `exact` or `relative` values.
  * `date_is_relative_to` requires a `relative_to_today` value.
+ * `date_is_within` requires an `exact_range` value.
  *
  * `dateFilterMode` chooses which end of a date range the comparison reads.
  * It defaults to `"start_date"`. `"end_date"` falls back to the start date for
  * rows whose date is a single day rather than a range, and has no effect on
  * `created_time` / `last_edited_time` properties, which are never ranges.
- *
  *
  * @example Exact date
  * {
@@ -1513,6 +1491,24 @@ export type DatePropertyFilterValue =
  *   dateFilterMode: "end_date"
  * }
  *
+ * @example Fixed calendar range
+ * {
+ *   type: "property",
+ *   propertyId: "due",
+ *   propertyType: "date",
+ *   operator: "date_is_within",
+ *   value: { type: "exact_range", value: { startDate: "2026-01-01", endDate: "2026-03-31" } }
+ * }
+ *
+ * @example Range left open at the end
+ * {
+ *   type: "property",
+ *   propertyId: "due",
+ *   propertyType: "date",
+ *   operator: "date_is_within",
+ *   value: { type: "exact_range", value: { startDate: "2026-01-01" } }
+ * }
+ *
  */
 export type DatePropertyFilter =
   | ({
@@ -1530,6 +1526,12 @@ export type DatePropertyFilter =
       propertyType: DatePropertyTypes
       operator: "date_is_relative_to"
       value: RelativeToTodayDatePropertyFilterValue
+      dateFilterMode?: DateFilterMode
+    } & BasePropertyFilter)
+  | ({
+      propertyType: DatePropertyTypes
+      operator: "date_is_within"
+      value: ExactRangeDatePropertyFilterValue
       dateFilterMode?: DateFilterMode
     } & BasePropertyFilter)
 
@@ -1625,6 +1627,12 @@ export type AdvancedFilterSchema = {
 export type BaseViewSchema = {
   resourceId: ResourceId
   name?: string
+  /**
+   * Notion icon shown in the view tab, including tabs in database page layouts.
+   * View icons do not support emoji or uploaded files. Omit to use the default
+   * icon for the view type.
+   */
+  icon?: NotionIcon
   type: ViewType
   /** Resource ID of a script-created or existing data source. */
   dataSourceResourceId: ResourceId
@@ -1736,7 +1744,7 @@ export type ViewSchema =
  * Arguments for creating a database.
  *
  * RESTRICTION: Databases can only be parented to resources created within the same
- * Infra as Code script. Parenting to existing records outside the script is not supported
+ * Notion as Code script. Parenting to existing records outside the script is not supported
  * for permission safety reasons.
  */
 export type DatabaseIntent = {
@@ -1747,7 +1755,7 @@ export type DatabaseIntent = {
   /**
    * Icon for the database. Can be an emoji or a notion_icon (looked up via semantic search).
    */
-  icon?: InfraAsCodeIcon
+  icon?: NotionAsCodeIcon
   /**
    * Optional cover for the database page.
    */
@@ -1788,7 +1796,7 @@ export type SpaceUserMember = {
 /**
  * Arguments for creating a space.
  *
- * NOTE: Infra as Code scripts are required to create a new space - you cannot work within
+ * NOTE: Notion as Code scripts are required to create a new space - you cannot work within
  * an existing space. This restriction exists for permission safety: all operations
  * run in a freshly created space where the executing user has full ownership.
  */
@@ -1798,7 +1806,7 @@ export type SpaceIntent = {
   /**
    * Icon for the space. Can be an emoji or a notion_icon (resolved by exact slug match or semantic search description).
    */
-  icon?: InfraAsCodeIcon
+  icon?: NotionAsCodeIcon
   /**
    * Additional members to add to the workspace.
    * The executing actor is always added automatically as an owner.
@@ -1817,7 +1825,7 @@ export type TeamspaceAccessLevel = "default" | "open" | "closed" | "private"
  * Arguments for creating a teamspace.
  *
  * RESTRICTION: Teamspaces can only be created within spaces created in the same
- * Infra as Code script. Creating teamspaces in existing spaces is not supported for
+ * Notion as Code script. Creating teamspaces in existing spaces is not supported for
  * permission safety reasons.
  */
 export type TeamspaceIntent = {
@@ -1828,15 +1836,15 @@ export type TeamspaceIntent = {
   /**
    * Icon for the teamspace. Can be an emoji or a notion_icon (resolved by exact slug match or semantic search description).
    */
-  icon?: InfraAsCodeIcon
+  icon?: NotionAsCodeIcon
   description?: string
 }
 
 /**
  * A recurrence schedule supported by custom agent triggers.
  *
- * Custom agents support every database-template recurrence frequency, plus
- * hourly schedules. Weekdays use standard two-letter recurrence codes, while
+ * Custom agents support every database recurrence frequency, plus hourly
+ * schedules. Weekdays use standard two-letter recurrence codes, while
  * monthly schedules repeat on either one day of the month or one weekday
  * occurrence.
  *
@@ -1850,7 +1858,7 @@ export type TeamspaceIntent = {
  *
  */
 export type CustomAgentRecurrenceSchedule = (
-  | DatabaseTemplateRecurrenceSchedule
+  | DatabaseRecurrenceSchedule
   | HourlyRecurrenceSchedule
 ) & {
   type: "recurrence"
@@ -1872,10 +1880,15 @@ export type CustomAgentRecurrenceTrigger = CustomAgentTriggerBase &
  * contains the selected data source. If more permissive access is already
  * granted, that access is used.
  */
-export type CustomAgentPageAddedTrigger = CustomAgentTriggerBase & {
-  type: "page_added"
-  dataSourceResourceId: ResourceId
-}
+export type CustomAgentPageAddedTrigger = CustomAgentTriggerBase &
+  PageAddedAutomationEvent & {
+    dataSourceResourceId: ResourceId
+    /**
+     * Whether to wait for follow-up edits before the agent runs. Defaults to
+     * true.
+     */
+    waitForEditsToFinish?: boolean
+  }
 
 /**
  * Defines when a custom agent runs automatically.
@@ -1883,6 +1896,10 @@ export type CustomAgentPageAddedTrigger = CustomAgentTriggerBase & {
 export type CustomAgentTrigger =
   | CustomAgentRecurrenceTrigger
   | CustomAgentPageAddedTrigger
+  | CustomAgentPropertyUpdatedTrigger
+  | CustomAgentPageRemovedTrigger
+  | CustomAgentCommentAddedTrigger
+  | CustomAgentMeetingNoteSummarizedTrigger
 
 /**
  * Arguments for creating a custom agent.
@@ -1902,7 +1919,7 @@ export type CustomAgentIntent = {
    *   resolved to a `/icons/<slug>_<color>.svg` path; exact slug matches
    *   skip the embeddings round-trip.
    *
-   * `FileReference` (the third `InfraAsCodeIcon` variant) is intentionally
+   * `FileReference` (the third `NotionAsCodeIcon` variant) is intentionally
    * NOT supported here yet.
    * [ref:custom_agent_file_uploads]
    *
@@ -1934,20 +1951,48 @@ export type CustomAgentIntent = {
    *
    * When omitted the agent inherits the workspace default model.
    *
+   * TODO: Externalize the model names. These are internal codename
+   * slugs that rotate with model releases; we need a stable external
+   * naming scheme before this becomes a real public surface.
+   * [ref:custom_agent_model_externalize]
    */
   model?: "ambrosia-tart-high" | "opal-quince-medium" | "almond-croissant-low"
   /**
-   * ResourceIds of pages and databases the agent should have access to.
-   *
-   * Each entry must reference a page or database that is either created
-   * earlier in the same script or pre-seeded as an existing resource.
-   * Entries are materialized as `pageOrCollectionViewBlock` permissions on
-   * the agent's Notion module with `["editor"]` actions (read + write).
-   *
-   * Referencing a resource that is not a page or database (e.g. a teamspace
-   * or workspace) throws at finalize time.
+   * Whether the agent can use the Web Browser and unrestricted internet access.
+   * When omitted, the agent's current setting is left unchanged.
    */
-  sharedResources?: Array<ResourceId>
+  browserUse?: boolean
+  /**
+   * Whether the agent can use web search. Defaults to `false` when omitted for
+   * a new agent. When updating an existing agent, omitting this field preserves
+   * its current web access and domain restrictions.
+   */
+  webAccess?: boolean
+  /**
+   * URL trust policy for this agent. `{ type: "all" }` allows every HTTP and
+   * HTTPS URL, while `{ type: "list", urls: [...] }` allows only the listed URL
+   * globs. For a new agent, omitting this field leaves URL trust disabled; for
+   * an existing agent, omission preserves the current URL trust policy.
+   */
+  trustedUrls?: CustomAgentTrustedUrls
+  /**
+   * Grants the agent access to pages and databases.
+   *
+   * Each entry must reference a page or database created earlier in the same
+   * script or pre-seeded as an existing resource. If an entry references another
+   * resource (for example, a teamspace or workspace), the finalize step throws.
+   *
+   * Enabled data-source triggers require reader access
+   * to the database that contains each data source. The helper recomputes this
+   * minimum from all effective triggers, including existing triggers omitted from
+   * an update. If an explicit grant has a stronger role, the helper retains it.
+   *
+   * For an existing custom agent, omit this field or provide an empty list to
+   * preserve current page and database grants. Each listed resource adds a grant
+   * or replaces its existing grant with the listed role. Grants for unlisted
+   * resources remain unchanged.
+   */
+  access?: Array<CustomAgentAccess>
   /**
    * Triggers that can run this agent automatically.
    *
@@ -2035,7 +2080,7 @@ export type DataSourceHandle<P extends PropertySchemaDefinition[]> = {
     /**
      * Icon for the page. Can be an emoji or a notion_icon (resolved by exact slug match or semantic search description).
      */
-    icon?: InfraAsCodeIcon
+    icon?: NotionAsCodeIcon
     /**
      * Properties for the database page, matching the schema defined in the data source.
      * Must include values for required properties (e.g., the title property).
@@ -2061,7 +2106,7 @@ export type DataSourceHandle<P extends PropertySchemaDefinition[]> = {
      * created. An undefined recurrence leaves existing recurrence state unchanged.
      * Requires `template: true`.
      */
-    recurrence?: DatabaseTemplateRecurrenceSchedule
+    recurrence?: DatabaseRecurrenceSchedule
     /**
      * Optional cover image referencing a file resource ID from the file manifest.
      * The file must be an image type (png, jpg, gif, svg, webp). URL cover
@@ -2073,6 +2118,11 @@ export type DataSourceHandle<P extends PropertySchemaDefinition[]> = {
      */
     fullWidth?: boolean
   }): PageHandle
+  /**
+   * Adds a database automation owned by this data source.
+   * The workspace must be on the Plus plan or higher.
+   */
+  addAutomation(args: ChildDatabaseAutomationArgs): DatabaseAutomationHandle
 }
 
 /**
@@ -2136,6 +2186,16 @@ export type TeamspaceHandle = {
 export type SpaceHandle = {
   resourceId: ResourceId
   addTeamspace(args: Omit<TeamspaceIntent, "parent">): TeamspaceHandle
+  /** Add a private database to this workspace */
+  addDatabase<
+    DS extends {
+      resourceId: ResourceId
+      name: string
+      properties: PropertySchemaDefinition[]
+    }[] = [],
+  >(args: ChildDatabaseArgs<DS>): DatabaseHandle<DS>
+  /** Add a private page to this workspace */
+  addPage(args: ChildPageArgs): PageHandle
 }
 
 /**
@@ -2174,10 +2234,11 @@ export type FileAttachmentIntent = {
  * Each intent includes a `type` discriminator and the corresponding args.
  *
  */
-export type InfraAsCodeIntent =
+export type NotionAsCodeIntent =
   | ({ type: "space" } & SpaceIntent)
   | ({ type: "teamspace" } & TeamspaceIntent)
   | ({ type: "database" } & DatabaseIntent)
+  | ({ type: "database_automation" } & DatabaseAutomationIntent)
   | ({ type: "page" } & PageIntent)
   | ({ type: "view" } & ViewIntent)
   | ({ type: "file_attachment" } & FileAttachmentIntent)
@@ -2224,6 +2285,339 @@ export type PropertyType =
   | "last_edited_time"
   | "created_by"
   | "last_edited_by"
+
+/**
+ * An action that can be used by Notion buttons and database automations.
+ * Each action type defines its own configuration.
+ */
+export type AutomationAction = CreatePageAutomationAction
+
+/**
+ * Creates a page in the referenced data source.
+ */
+export type CreatePageAutomationAction = {
+  resourceId: ResourceId
+  type: "create_page"
+  dataSourceResourceId: ResourceId
+  /**
+   * Optional resource ID of the template page used to create the new page.
+   *
+   * When provided, this template overrides the target data source's default
+   * template. When omitted, the action uses the data source's default template,
+   * or creates the page without a template if no default exists.
+   *
+   * The referenced page must use `template: true` and belong to the target data
+   * source.
+   */
+  templatePageResourceId?: ResourceId
+}
+
+export type DatabaseRecurrenceSchedule = DatabaseTemplateRecurrenceSchedule
+
+/**
+ * Grouped properties, either sectionless or in ordered named sections.
+ * Remaining properties are appended to the list or the final section in schema
+ * order, excluding the title and properties placed elsewhere in the layout.
+ */
+export type PageLayoutPropertiesModule = {
+  type: "properties"
+} & (
+  | { properties?: Array<PageLayoutPropertyConfig>; sections?: never }
+  | { sections: Array<PageLayoutPropertySection>; properties?: never }
+)
+
+/**
+ * An ordered named section in the grouped properties module.
+ */
+export type PageLayoutPropertySection = {
+  name: string
+  properties: Array<PageLayoutPropertyConfig>
+}
+
+/**
+ * A property in a grouped list or named section.
+ */
+export type PageLayoutPropertyConfig = {
+  property: ResourceId
+  /** Defaults to show. This controls presentation, not access permissions. */
+  visibility?: "show" | "hide_if_empty" | "hide"
+}
+
+/**
+ * A standalone property in an ordered layout area.
+ */
+export type PageLayoutPropertyModule = {
+  type: "property"
+  property: ResourceId
+  /**
+   * Person, created-by, last-edited-by: compact or large.
+   * Number and formula: large or small. Non-numeric formulas render small.
+   * Files: landscape, portrait, or square. Other property types omit style.
+   * Omitted uses the native default for the property type.
+   * TODO: Link the property resource ID to its schema type so TypeScript can
+   * reject styles that do not match the referenced property type.
+   */
+  style?:
+    | PageLayoutPersonStyle
+    | PageLayoutNumberAndFormulaStyle
+    | PageLayoutFilesAndMediaStyle
+}
+
+/**
+ * Styles for person, created-by, and last-edited-by properties.
+ */
+export type PageLayoutPersonStyle = "compact" | "large"
+
+/**
+ * Styles for number and formula properties.
+ */
+export type PageLayoutNumberAndFormulaStyle = "large" | "small"
+
+/**
+ * Styles for file and media properties.
+ */
+export type PageLayoutFilesAndMediaStyle = "landscape" | "portrait" | "square"
+
+/**
+ * A main-area group of ordered relation properties. At most one per layout.
+ */
+export type PageLayoutRelationsGroupModule = {
+  type: "relations"
+  relations: Array<PageLayoutRelationConfig>
+}
+
+/**
+ * A relation rendered as an expanded page section or a minimal button.
+ */
+export type PageLayoutRelationConfig = {
+  property: ResourceId
+  display: "pageSection" | "minimal"
+}
+
+/**
+ * Configurable modules before the editor and discussions.
+ */
+export type PageLayoutMainModule =
+  | PageLayoutPropertiesModule
+  | PageLayoutPropertyModule
+  | PageLayoutRelationsGroupModule
+
+/**
+ * Configurable modules in the sidebar.
+ */
+export type PageLayoutSidebarModule =
+  | PageLayoutPropertiesModule
+  | PageLayoutPropertyModule
+
+/**
+ * Value for the `date_is_within` operator, shown as "Is between" in the UI.
+ *
+ * Bounds are inclusive `YYYY-MM-DD` dates; supplying only one leaves the range
+ * open at the other end.
+ *
+ */
+export type ExactRangeDatePropertyFilterValue = {
+  type: "exact_range"
+  value:
+    | { startDate: string; endDate?: string }
+    | { startDate?: string; endDate: string }
+}
+
+export type PropertyTriggerCondition = {
+  type: "property_edited"
+}
+
+/**
+ * Runs an automation when a page is added.
+ */
+export type PageAddedAutomationEvent = {
+  type: "page_added"
+}
+
+/**
+ * Runs an automation when a property is updated.
+ */
+export type PropertyUpdatedAutomationEvent = {
+  type: "property_updated"
+  /**
+   * Property edit conditions keyed by each property's resource ID.
+   *
+   * For database automations, omit this field to run on any property edit.
+   * For custom agents, omit this field and set `triggerWhenPageContentEdited: true`
+   * to watch only page content edits.
+   * TODO: Add support for any-property-edit for custom agents.
+   *
+   * An empty object is invalid.
+   *
+   * @example Trigger when the name property is edited:
+   * propertyConditions: {
+   *     "support-request-name": {
+   *         type: "property_edited",
+   *     },
+   * }
+   */
+  propertyConditions?: Record<ResourceId, PropertyTriggerCondition>
+}
+
+/**
+ * Runs when selected properties or page content are edited in the selected
+ * data source.
+ *
+ * The custom agent automatically receives read-only access to the database
+ * that contains the selected data source. If more permissive access is already
+ * granted, that access is used.
+ *
+ * Omit `propertyConditions` and set `triggerWhenPageContentEdited` to `true`
+ * to run the agent only when page content is edited.
+ */
+export type CustomAgentPropertyUpdatedTrigger = CustomAgentTriggerBase &
+  PropertyUpdatedAutomationEvent & {
+    dataSourceResourceId: ResourceId
+    /**
+     * Whether page content edits also run the agent. Set this with
+     * `propertyConditions` to watch both property and page content edits.
+     * Defaults to false.
+     */
+    triggerWhenPageContentEdited?: boolean
+    /**
+     * Whether to wait for follow-up edits before the agent runs. Defaults to
+     * true.
+     */
+    waitForEditsToFinish?: boolean
+  }
+
+/**
+ * Runs when a page in the selected data source is moved to Trash.
+ *
+ * The custom agent automatically receives read-only access to the database that
+ * contains the selected data source. If more permissive access is already
+ * granted, that access is used.
+ */
+export type CustomAgentPageRemovedTrigger = CustomAgentTriggerBase & {
+  type: "page_removed"
+  dataSourceResourceId: ResourceId
+}
+
+/**
+ * Runs when someone adds a comment to a page in the selected data source.
+ *
+ * The custom agent automatically receives read-only access to the database that
+ * contains the selected data source. If more permissive access is already
+ * granted, that access is used.
+ */
+export type CustomAgentCommentAddedTrigger = CustomAgentTriggerBase & {
+  type: "comment_added"
+  dataSourceResourceId: ResourceId
+}
+
+/**
+ * Runs when a meeting note in the selected data source finishes summarizing.
+ *
+ * The custom agent automatically receives read-only access to the database that
+ * contains the selected data source. If more permissive access is already
+ * granted, that access is used.
+ */
+export type CustomAgentMeetingNoteSummarizedTrigger = CustomAgentTriggerBase & {
+  type: "meeting_note_summarized"
+  dataSourceResourceId: ResourceId
+}
+
+/**
+ * Defines access levels for resources that a custom agent can use.
+ *
+ * These values map to Notion module permissions: full access, content editing,
+ * commenting, and read-only.
+ */
+export type CustomAgentAccessLevel = "view" | "comment" | "edit" | "fullAccess"
+
+/**
+ * Grants a custom agent access to a page or database resource.
+ */
+export type CustomAgentAccess = {
+  resourceId: ResourceId
+  level: CustomAgentAccessLevel
+}
+
+/**
+ * URL trust settings for a custom agent.
+ *
+ * Set `{ type: "all" }` to trust every HTTP and HTTPS URL. URL trust is
+ * independent from `webAccess`: an agent can trust URLs without being granted
+ * web search access.
+ *
+ * Set `{ type: "list", urls: [...] }` to trust up to 20 listed URL globs. An
+ * empty list disables URL trust.
+ */
+export type CustomAgentTrustedUrls =
+  | {
+      type: "all"
+    }
+  | {
+      type: "list"
+      urls: Array<string>
+    }
+
+/**
+ * Defines an event that runs a database automation.
+ */
+export type DatabaseAutomationEventTrigger =
+  | PageAddedAutomationEvent
+  | PropertyUpdatedAutomationEvent
+
+/**
+ * Runs a database automation on a recurring schedule.
+ *
+ * Database automations support daily through yearly schedules. Unlike custom
+ * agent triggers, they do not support hourly schedules.
+ */
+export type DatabaseAutomationRecurrenceTrigger = DatabaseRecurrenceSchedule & {
+  type: "recurrence"
+}
+
+export type DatabaseAutomationTriggerConfiguration =
+  | {
+      /**
+       * How the configured trigger conditions are combined. `all` requires every
+       * condition to occur. `any` requires at least one. Defaults to `all`. `any`
+       * cannot combine page-added with an any-property-updated trigger.
+       */
+      triggerOperator?: "all" | "any"
+      triggers: Array<DatabaseAutomationEventTrigger>
+    }
+  | {
+      /**
+       * A recurrence is the automation's only trigger.
+       * Trigger operators apply only to event triggers.
+       */
+      triggers: [DatabaseAutomationRecurrenceTrigger]
+      triggerOperator?: never
+    }
+
+/**
+ * A database automation that runs ordered actions when its triggers fire.
+ * The workspace must be on the Plus plan or higher.
+ */
+export type DatabaseAutomationIntentBase = {
+  resourceId: ResourceId
+  name?: string
+  /** Whether the automation is active. Defaults to true. */
+  enabled?: boolean
+  dataSourceResourceId: ResourceId
+  actions: Array<AutomationAction>
+}
+
+export type DatabaseAutomationIntent = DatabaseAutomationIntentBase &
+  DatabaseAutomationTriggerConfiguration
+
+export type ChildDatabaseAutomationArgs = Omit<
+  DatabaseAutomationIntentBase,
+  "dataSourceResourceId"
+> &
+  DatabaseAutomationTriggerConfiguration
+
+export type DatabaseAutomationHandle = {
+  resourceId: ResourceId
+}
 
 export declare const notion: {
   /**

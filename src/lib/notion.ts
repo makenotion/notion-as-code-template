@@ -12,14 +12,14 @@ import type {
   DatabaseHandle,
   DatabaseIntent,
   DataSourceHandle,
-  InfraAsCodeIntent,
+  NotionAsCodeIntent,
   notion as notionDefinition,
   PropertySchemaDefinition,
 } from "./types"
 
-const intents: InfraAsCodeIntent[] = []
+const intents: NotionAsCodeIntent[] = []
 
-function recordIntent(intent: InfraAsCodeIntent) {
+function recordIntent(intent: NotionAsCodeIntent) {
   intents.push(intent)
 }
 
@@ -31,6 +31,16 @@ const notion: typeof notionDefinition = {
       addTeamspace: (tsArgs) =>
         notion.teamspace({
           ...tsArgs,
+          parent: { type: "resourceId", resourceId: args.resourceId },
+        }),
+      addDatabase: (dbArgs) =>
+        notion.database({
+          ...dbArgs,
+          parent: { type: "resourceId", resourceId: args.resourceId },
+        }),
+      addPage: (pageArgs) =>
+        notion.page({
+          ...pageArgs,
           parent: { type: "resourceId", resourceId: args.resourceId },
         }),
     }
@@ -74,6 +84,14 @@ const notion: typeof notionDefinition = {
       dataSources[ds.resourceId] = {
         resourceId: dataSourceResourceId,
         schema: ds.properties,
+        addAutomation: (automationArgs) => {
+          recordIntent({
+            type: "database_automation",
+            ...automationArgs,
+            dataSourceResourceId,
+          })
+          return { resourceId: automationArgs.resourceId }
+        },
         addPage: (pageArgs) =>
           notion.page({
             ...pageArgs,
