@@ -44,7 +44,7 @@ generalTeamspace.addPage({
 	resourceId: "hello-world-page",
 	properties: { title: notion.text("Hello world!") },
 	icon: { type: "notion_icon", description: "sparkles", color: "yellow" },
-	// The content of the page is written in Notion-flavored markdown. It is
+	// The content of the page is written in Notion Markdown vNext. It is
 	// imported from src/content.ts to show that scripts can span multiple files.
 	content: welcomeContent,
 });
