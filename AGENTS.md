@@ -32,17 +32,11 @@ reject requests in some environments.
   successful apply.
 - Use exactly one workspace anchor per script: one `notion.space({...})` or
   one shared teamspace-parent `resourceId`.
-- Page `content` and custom-agent `instructions` use Notion Markdown vNext.
-  The full spec is the generated `NotionAsCodeMarkdownSpec` type at the bottom
-  of `src/lib/types.d.ts`. Resource mentions use
-  `<mention url="resource-id">Label</mention>`; existing `{{resource-id}}`
-  placeholders still work. Use `type="data-source"` for a data-source resource
-  ID and `type="agent"` for a custom-agent resource ID. Use ordinary Markdown
-  links for external URLs. Do not use legacy `<mention-page>` or
-  `<mention-database>` tags. Put container titles directly in their bodies,
-  followed by a blank line before children. The server rejects malformed
-  Markdown and unknown or mistyped resource references during apply; a local
-  build only records strings and does not validate them.
+- Page `content` and custom-agent `instructions` use Notion Markdown. The full
+  reference is `NotionAsCodeMarkdownSpec` in `src/lib/types.d.ts`.
+- Resource mentions use resource IDs in the `url` attribute. Mention types are
+  `page`, `database`, `data-source`, and `agent`; use the corresponding resource
+  handle's `resourceId`. External URLs use ordinary Markdown links.
 
 ## Commands
 
