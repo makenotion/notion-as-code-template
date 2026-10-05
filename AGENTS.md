@@ -32,9 +32,11 @@ reject requests in some environments.
   successful apply.
 - Use exactly one workspace anchor per script: one `notion.space({...})` or
   one shared teamspace-parent `resourceId`.
-- Page `content` is Notion-flavored Markdown; the full spec is the
-  `NOTION_AS_CODE_MARKDOWN_SPEC` constant at the bottom of
-  `src/lib/types.d.ts`.
+- Page `content` and custom-agent `instructions` use Notion Markdown. The full
+  reference is `NotionAsCodeMarkdownSpec` in `src/lib/types.d.ts`.
+- Resource mentions use resource IDs in the `url` attribute. Mention types are
+  `page`, `database`, `data-source`, and `agent`; use the corresponding resource
+  handle's `resourceId`. External URLs use ordinary Markdown links.
 
 ## Commands
 
