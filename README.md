@@ -14,8 +14,21 @@ CLI. Re-applying updates the same resources instead of creating duplicates.
 
 ## Quick start
 
+Install dependencies with your package manager:
+
 ```sh
 npm install
+```
+
+or:
+
+```sh
+pnpm install
+```
+
+Then apply the project:
+
+```sh
 ntn notion-as-code apply .
 ```
 
