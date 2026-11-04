@@ -14,24 +14,25 @@ CLI. Re-applying updates the same resources instead of creating duplicates.
 
 ## Quick start
 
+Install dependencies with your package manager:
+
 ```sh
 npm install
+```
+
+or:
+
+```sh
+pnpm install
+```
+
+Then apply the project:
+
+```sh
 ntn notion-as-code apply .
 ```
 
 Then edit `src/main.ts` (and the files it imports) and re-run
 `ntn notion-as-code apply .` to update the same resources.
-
-You can also install and build with PNPM 11:
-
-```sh
-pnpm install
-pnpm run build
-ntn notion-as-code apply .
-```
-
-The PNPM config allows only esbuild to run its install script, so it does not
-need a manual build approval. The build script works with both npm and PNPM.
-Using PNPM without npm also requires a version of `ntn` that supports PNPM.
 
 See [AGENTS.md](./AGENTS.md) for the full authoring guide.
